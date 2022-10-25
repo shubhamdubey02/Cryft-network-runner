@@ -13,16 +13,17 @@ import (
 
 	"github.com/MetalBlockchain/metal-network-runner/local"
 	"github.com/MetalBlockchain/metal-network-runner/network"
-	"github.com/MetalBlockchain/metal-network-runner/pkg/color"
 	"github.com/MetalBlockchain/metal-network-runner/rpcpb"
+	"github.com/MetalBlockchain/metal-network-runner/utils/constants"
+	"github.com/MetalBlockchain/metal-network-runner/ux"
 	"github.com/MetalBlockchain/metalgo/config"
 	"github.com/MetalBlockchain/metalgo/ids"
-	"github.com/MetalBlockchain/metalgo/utils/constants"
+	avago_constants "github.com/MetalBlockchain/metalgo/utils/constants"
 	"github.com/MetalBlockchain/metalgo/utils/logging"
 )
 
 type localNetwork struct {
-	logger logging.Logger
+	log logging.Logger
 
 	execPath  string
 	pluginDir string
@@ -50,10 +51,6 @@ type localNetwork struct {
 	stopOnce sync.Once
 
 	subnets []string
-
-	// default chain configs to be used when adding new nodes to the network
-	// includes the ones received in options, plus default config or snapshot
-	chainConfigs map[string]string
 }
 
 type chainInfo struct {
@@ -75,27 +72,30 @@ type localNetworkOptions struct {
 
 	// chain configs to be added to the network, besides the ones in default config, or saved snapshot
 	chainConfigs map[string]string
+	// upgrade configs to be added to the network, besides the ones in default config, or saved snapshot
+	upgradeConfigs map[string]string
 
 	// to block racey restart while installing custom chains
 	restartMu *sync.RWMutex
 
 	snapshotsDir string
+
+	logLevel logging.Level
 }
 
 func newLocalNetwork(opts localNetworkOptions) (*localNetwork, error) {
 	lcfg := logging.Config{
-		DisplayLevel: logging.Info,
-		LogLevel:     logging.Debug,
+		LogLevel: opts.logLevel,
 	}
 	lcfg.Directory = opts.rootDataDir
 	logFactory := logging.NewFactory(lcfg)
-	logger, err := logFactory.Make("main")
+	logger, err := logFactory.Make(constants.LogNameMain)
 	if err != nil {
 		return nil, err
 	}
 
 	return &localNetwork{
-		logger: logger,
+		log: logger,
 
 		execPath: opts.execPath,
 
@@ -145,6 +145,9 @@ func (lc *localNetwork) createConfig() error {
 
 		for k, v := range lc.options.chainConfigs {
 			cfg.NodeConfigs[i].ChainConfigFiles[k] = v
+		}
+		for k, v := range lc.options.upgradeConfigs {
+			cfg.NodeConfigs[i].UpgradeConfigFiles[k] = v
 		}
 
 		if cfg.NodeConfigs[i].Flags == nil {
@@ -204,6 +207,7 @@ func getBuildDir(execPath string, pluginDir string) (string, error) {
 		}
 		buildDir = filepath.Dir(pluginDir)
 	}
+
 	return buildDir, nil
 }
 
@@ -212,8 +216,8 @@ func (lc *localNetwork) start() error {
 		return err
 	}
 
-	color.Outf("{{blue}}{{bold}}create and run local network{{/}}\n")
-	nw, err := local.NewNetwork(lc.logger, lc.cfg, lc.options.rootDataDir, lc.options.snapshotsDir)
+	ux.Print(lc.log, logging.Blue.Wrap(logging.Bold.Wrap("create and run local network")))
+	nw, err := local.NewNetwork(lc.log, lc.cfg, lc.options.rootDataDir, lc.options.snapshotsDir)
 	if err != nil {
 		return err
 	}
@@ -262,7 +266,7 @@ func (lc *localNetwork) createBlockchains(
 	ctx, lc.startCtxCancel = context.WithCancel(argCtx)
 
 	if len(chainSpecs) == 0 {
-		color.Outf("{{orange}}{{bold}}custom chain not specified, skipping installation and its health checks...{{/}}\n")
+		ux.Print(lc.log, logging.Orange.Wrap(logging.Bold.Wrap("custom chain not specified, skipping installation and its health checks")))
 		return
 	}
 
@@ -306,7 +310,7 @@ func (lc *localNetwork) createSubnets(
 	ctx, lc.startCtxCancel = context.WithCancel(argCtx)
 
 	if numSubnets == 0 {
-		color.Outf("{{orange}}{{bold}}no subnets specified...{{/}}\n")
+		ux.Print(lc.log, logging.Orange.Wrap(logging.Bold.Wrap("no subnets specified...")))
 		return
 	}
 
@@ -334,7 +338,7 @@ func (lc *localNetwork) createSubnets(
 		lc.startErrCh <- err
 	}
 
-	color.Outf("{{green}}{{bold}}finish adding subnets{{/}}\n")
+	ux.Print(lc.log, logging.Green.Wrap(logging.Bold.Wrap("finished adding subnets")))
 
 	close(createSubnetsReadyCh)
 }
@@ -343,7 +347,7 @@ func (lc *localNetwork) loadSnapshot(
 	ctx context.Context,
 	snapshotName string,
 ) error {
-	color.Outf("{{blue}}{{bold}}create and run local network from snapshot{{/}}\n")
+	ux.Print(lc.log, logging.Blue.Wrap(logging.Bold.Wrap("create and run local network from snapshot")))
 
 	buildDir, err := getBuildDir(lc.execPath, lc.pluginDir)
 	if err != nil {
@@ -358,13 +362,14 @@ func (lc *localNetwork) loadSnapshot(
 	}
 
 	nw, err := local.NewNetworkFromSnapshot(
-		lc.logger,
+		lc.log,
 		snapshotName,
 		lc.options.rootDataDir,
 		lc.options.snapshotsDir,
 		lc.execPath,
 		buildDir,
 		lc.options.chainConfigs,
+		lc.options.upgradeConfigs,
 		globalNodeConfig,
 	)
 	if err != nil {
@@ -422,21 +427,21 @@ func (lc *localNetwork) updateSubnetInfo(ctx context.Context) error {
 	}
 	lc.subnets = []string{}
 	for _, subnet := range subnets {
-		if subnet.ID != constants.PlatformChainID {
+		if subnet.ID != avago_constants.PlatformChainID {
 			lc.subnets = append(lc.subnets, subnet.ID.String())
 		}
 	}
 	for _, nodeName := range lc.nodeNames {
 		nodeInfo := lc.nodeInfos[nodeName]
 		for chainID, chainInfo := range lc.customChainIDToInfo {
-			color.Outf("{{blue}}{{bold}}[blockchain RPC for %q] \"%s/ext/bc/%s\"{{/}}\n", chainInfo.info.VmId, nodeInfo.GetUri(), chainID)
+			ux.Print(lc.log, logging.Blue.Wrap(logging.Bold.Wrap("[blockchain RPC for %q] \"%s/ext/bc/%s\"")), chainInfo.info.VmId, nodeInfo.GetUri(), chainID)
 		}
 	}
 	return nil
 }
 
 func (lc *localNetwork) waitForLocalClusterReady(ctx context.Context) error {
-	color.Outf("{{blue}}{{bold}}waiting for all nodes to report healthy...{{/}}\n")
+	ux.Print(lc.log, logging.Blue.Wrap(logging.Bold.Wrap("waiting for all nodes to report healthy...")))
 
 	if err := lc.nw.Healthy(ctx); err != nil {
 		return err
@@ -444,7 +449,7 @@ func (lc *localNetwork) waitForLocalClusterReady(ctx context.Context) error {
 
 	for _, name := range lc.nodeNames {
 		nodeInfo := lc.nodeInfos[name]
-		color.Outf("{{cyan}}%s: node ID %q, URI %q{{/}}\n", name, nodeInfo.Id, nodeInfo.Uri)
+		ux.Print(lc.log, logging.Cyan.Wrap("node-info: node-name %s, node-ID: %s, URI: %s"), name, nodeInfo.Id, nodeInfo.Uri)
 	}
 	return nil
 }
@@ -492,11 +497,6 @@ func (lc *localNetwork) updateNodeInfo() error {
 		if lc.pluginDir == "" {
 			lc.pluginDir = pluginDir
 		}
-		// update default chain configs if empty
-		if lc.chainConfigs == nil {
-			lc.chainConfigs = node.GetConfig().ChainConfigFiles
-		}
-
 	}
 	return nil
 }
@@ -510,6 +510,6 @@ func (lc *localNetwork) stop(ctx context.Context) {
 		}
 		serr := lc.nw.Stop(ctx)
 		<-lc.startDoneCh
-		color.Outf("{{red}}{{bold}}terminated network{{/}} (error %v)\n", serr)
+		ux.Print(lc.log, logging.Red.Wrap(logging.Bold.Wrap("terminated network %s")), serr)
 	})
 }

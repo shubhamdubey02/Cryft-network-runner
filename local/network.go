@@ -33,6 +33,7 @@ import (
 const (
 	defaultNodeNamePrefix = "node"
 	configFileName        = "config.json"
+	upgradeConfigFileName = "upgrade.json"
 	stakingKeyFileName    = "staking.key"
 	stakingCertFileName   = "staking.crt"
 	genesisFileName       = "genesis.json"
@@ -97,6 +98,8 @@ type localNetwork struct {
 	binaryPath string
 	// chain config files to use per default
 	chainConfigFiles map[string]string
+	// upgrade config files to use per default
+	upgradeConfigFiles map[string]string
 }
 
 var (
@@ -181,6 +184,7 @@ func init() {
 		ChainConfigFiles: map[string]string{
 			"C": string(cChainConfig),
 		},
+		UpgradeConfigFiles: map[string]string{},
 	}
 
 	for i := 0; i < len(defaultNetworkConfig.NodeConfigs); i++ {
@@ -378,7 +382,7 @@ func (ln *localNetwork) loadConfig(ctx context.Context, networkConfig network.Co
 	if err := networkConfig.Validate(); err != nil {
 		return fmt.Errorf("config failed validation: %w", err)
 	}
-	ln.log.Info("creating network with nodes", zap.Int("nodeCount", len(networkConfig.NodeConfigs)))
+	ln.log.Info("creating network", zap.Int("node-num", len(networkConfig.NodeConfigs)))
 
 	ln.genesis = []byte(networkConfig.Genesis)
 
@@ -392,6 +396,7 @@ func (ln *localNetwork) loadConfig(ctx context.Context, networkConfig network.Co
 	ln.flags = networkConfig.Flags
 	ln.binaryPath = networkConfig.BinaryPath
 	ln.chainConfigFiles = networkConfig.ChainConfigFiles
+	ln.upgradeConfigFiles = networkConfig.UpgradeConfigFiles
 
 	// Sort node configs so beacons start first
 	var nodeConfigs []node.Config
@@ -410,7 +415,7 @@ func (ln *localNetwork) loadConfig(ctx context.Context, networkConfig network.Co
 		if _, err := ln.addNode(nodeConfig); err != nil {
 			if err := ln.stop(ctx); err != nil {
 				// Clean up nodes already created
-				ln.log.Debug("error stopping network", zap.String("err", fmt.Sprintf("%s", err)))
+				ln.log.Debug("error stopping network", zap.Error(err))
 			}
 			return fmt.Errorf("error adding node %s: %s", nodeConfig.Name, err)
 		}
@@ -448,6 +453,12 @@ func (ln *localNetwork) addNode(nodeConfig node.Config) (node.Node, error) {
 		_, ok := nodeConfig.ChainConfigFiles[k]
 		if !ok {
 			nodeConfig.ChainConfigFiles[k] = v
+		}
+	}
+	for k, v := range ln.upgradeConfigFiles {
+		_, ok := nodeConfig.UpgradeConfigFiles[k]
+		if !ok {
+			nodeConfig.UpgradeConfigFiles[k] = v
 		}
 	}
 	addNetworkFlags(ln.log, ln.flags, nodeConfig.Flags)
@@ -500,13 +511,22 @@ func (ln *localNetwork) addNode(nodeConfig node.Config) (node.Node, error) {
 		)
 	}
 
-	// TODO: Rework
-	/* ln.log.Info(
-		"adding node %q with tmp dir at %s, logs at %s, DB at %s, P2P port %d, API port %d",
-		nodeConfig.Name, nodeDir, nodeData.logsDir, nodeData.dbDir, nodeData.p2pPort, nodeData.apiPort,
+	ln.log.Info(
+		"adding node",
+		zap.String("node-name", nodeConfig.Name),
+		zap.String("node-dir", nodeDir),
+		zap.String("log-dir", nodeData.logsDir),
+		zap.String("db-dir", nodeData.dbDir),
+		zap.Uint16("p2p-port", nodeData.p2pPort),
+		zap.Uint16("api-port", nodeData.apiPort),
 	)
 
-	ln.log.Debug("starting node %q with \"%s %s\"", nodeConfig.Name, nodeConfig.BinaryPath, nodeData.flags) */
+	ln.log.Debug(
+		"starting node",
+		zap.String("name", nodeConfig.Name),
+		zap.String("binaryPath", nodeConfig.BinaryPath),
+		zap.Strings("flags", nodeData.flags),
+	)
 
 	// Create a wrapper for this node so we can reference it later
 	node := &localNode{
@@ -546,7 +566,7 @@ func (ln *localNetwork) Healthy(ctx context.Context) error {
 }
 
 func (ln *localNetwork) healthy(ctx context.Context) error {
-	zap.L().Info("checking local network healthiness", zap.Int("nodes", len(ln.nodes)))
+	ln.log.Info("checking local network healthiness", zap.Int("num-of-nodes", len(ln.nodes)))
 
 	// Return unhealthy if the network is stopped
 	if ln.stopCalled() {
@@ -582,7 +602,7 @@ func (ln *localNetwork) healthy(ctx context.Context) error {
 				}
 				health, err := node.client.HealthAPI().Health(ctx)
 				if err == nil && health.Healthy {
-					ln.log.Debug("node became healthy", zap.String("nodeName", fmt.Sprintf("%q", nodeName)))
+					ln.log.Debug("node became healthy", zap.String("name", nodeName))
 					return nil
 				}
 				select {
@@ -668,7 +688,7 @@ func (ln *localNetwork) stop(ctx context.Context) error {
 	for nodeName := range ln.nodes {
 		stopCtx, stopCtxCancel := context.WithTimeout(ctx, stopTimeout)
 		if err := ln.removeNode(stopCtx, nodeName); err != nil {
-			ln.log.Error("error stopping node", zap.String("nodeName", fmt.Sprintf("%q", nodeName)), zap.String("error", fmt.Sprintf("%s", err)))
+			ln.log.Error("error stopping node", zap.String("name", nodeName), zap.Error(err))
 			errs.Add(err)
 		}
 		stopCtxCancel()
@@ -689,7 +709,7 @@ func (ln *localNetwork) RemoveNode(ctx context.Context, nodeName string) error {
 
 // Assumes [ln.lock] is held.
 func (ln *localNetwork) removeNode(ctx context.Context, nodeName string) error {
-	ln.log.Debug("removing node", zap.String("nodeName", fmt.Sprintf("%q", nodeName)))
+	ln.log.Debug("removing node", zap.String("name", nodeName))
 	node, ok := ln.nodes[nodeName]
 	if !ok {
 		return fmt.Errorf("node %q not found", nodeName)
@@ -715,6 +735,8 @@ func (ln *localNetwork) RestartNode(
 	nodeName string,
 	binaryPath string,
 	whitelistedSubnets string,
+	chainConfigs map[string]string,
+	upgradeConfigs map[string]string,
 ) error {
 	ln.lock.Lock()
 	defer ln.lock.Unlock()
@@ -739,6 +761,14 @@ func (ln *localNetwork) RestartNode(
 	nodeConfig.Flags[config.DBPathKey] = node.GetDbDir()
 	nodeConfig.Flags[config.HTTPPortKey] = int(node.GetAPIPort())
 	nodeConfig.Flags[config.StakingPortKey] = int(node.GetP2PPort())
+	// apply chain configs
+	for k, v := range chainConfigs {
+		nodeConfig.ChainConfigFiles[k] = v
+	}
+	// apply upgrade configs
+	for k, v := range upgradeConfigs {
+		nodeConfig.UpgradeConfigFiles[k] = v
+	}
 
 	if err := ln.removeNode(ctx, nodeName); err != nil {
 		return err
@@ -862,7 +892,7 @@ func (ln *localNetwork) buildFlags(
 	// Note these will overwrite existing flags if the same flag is given twice.
 	for flagName, flagVal := range nodeConfig.Flags {
 		if _, ok := warnFlags[flagName]; ok {
-			ln.log.Warn("The flag has been provided. This can create conflicts with the runner. The suggestion is to remove this flag", zap.String("flagName", flagName))
+			ln.log.Warn("A provided flag can create conflicts with the runner. The suggestion is to remove this flag", zap.String("flag-name", flagName))
 		}
 		flags = append(flags, fmt.Sprintf("--%s=%v", flagName, flagVal))
 	}

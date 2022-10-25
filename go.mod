@@ -3,12 +3,10 @@ module github.com/MetalBlockchain/metal-network-runner
 go 1.18
 
 require (
-	github.com/MetalBlockchain/metalgo v1.7.17-rc.1
 	github.com/MetalBlockchain/coreth v0.8.15-rc.2
-	github.com/ethereum/go-ethereum v1.10.20
+	github.com/MetalBlockchain/metalgo v1.7.17-rc.1
+	github.com/ethereum/go-ethereum v1.10.21
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.3
-	github.com/onsi/ginkgo/v2 v2.1.4
-	github.com/onsi/gomega v1.19.0
 	github.com/otiai10/copy v1.7.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -17,7 +15,7 @@ require (
 	go.uber.org/zap v1.21.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/genproto v0.0.0-20220712132514-bdd2acd4974d
-	google.golang.org/grpc v1.47.0
+	google.golang.org/grpc v1.50.0-dev
 	google.golang.org/protobuf v1.28.0
 )
 

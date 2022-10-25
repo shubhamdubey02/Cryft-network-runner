@@ -55,7 +55,7 @@ func writeFiles(genesis []byte, nodeRootDir string, nodeConfig *node.Config) ([]
 			return nil, fmt.Errorf("couldn't write file at %q: %w", f.path, err)
 		}
 	}
-	if nodeConfig.ChainConfigFiles != nil {
+	if nodeConfig.ChainConfigFiles != nil || nodeConfig.UpgradeConfigFiles != nil {
 		// only one flag and multiple files
 		chainConfigDir := filepath.Join(nodeRootDir, chainConfigSubDir)
 		flags = append(flags, fmt.Sprintf("--%s=%s", config.ChainConfigDirKey, chainConfigDir))
@@ -63,6 +63,12 @@ func writeFiles(genesis []byte, nodeRootDir string, nodeConfig *node.Config) ([]
 			chainConfigPath := filepath.Join(chainConfigDir, chainAlias, configFileName)
 			if err := createFileAndWrite(chainConfigPath, []byte(chainConfigFile)); err != nil {
 				return nil, fmt.Errorf("couldn't write file at %q: %w", chainConfigPath, err)
+			}
+		}
+		for chainAlias, chainUpgradeFile := range nodeConfig.UpgradeConfigFiles {
+			chainUpgradePath := filepath.Join(chainConfigDir, chainAlias, upgradeConfigFileName)
+			if err := createFileAndWrite(chainUpgradePath, []byte(chainUpgradeFile)); err != nil {
+				return nil, fmt.Errorf("couldn't write file at %q: %w", chainUpgradePath, err)
 			}
 		}
 	}
@@ -134,9 +140,9 @@ func makeNodeDir(log logging.Logger, rootDir, nodeName string) (string, error) {
 	nodeRootDir := filepath.Join(rootDir, nodeName)
 	if err := os.Mkdir(nodeRootDir, 0o755); err != nil {
 		if os.IsExist(err) {
-			log.Warn("node root directory " + nodeRootDir + " already exists")
+			log.Warn("node root directory already exists", zap.String("root-dir", nodeRootDir))
 		} else {
-			return "", fmt.Errorf("error creating temp dir: %w", err)
+			return "", fmt.Errorf("error creating temp dir %w", err)
 		}
 	}
 	return nodeRootDir, nil
@@ -171,10 +177,10 @@ func addNetworkFlags(log logging.Logger, networkFlags map[string]interface{}, no
 			nodeFlags[flagName] = flagVal
 		} else {
 			log.Debug(
-				"not overwriting node config flag %s (value %v) with network config flag (value %v)",
-				zap.String("flag", flagName),
-				zap.String("value", fmt.Sprintf("%v", val)),
-				zap.String("flagVal", fmt.Sprintf("%v", flagVal)),
+				"not overwriting node config flag with network config flag",
+				zap.String("flag-name", flagName),
+				zap.Any("value", val),
+				zap.Any("network config value", flagVal),
 			)
 		}
 	}

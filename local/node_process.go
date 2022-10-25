@@ -119,7 +119,7 @@ func (p *nodeProcess) start() error {
 // When it does, update the state and close [p.closedOnStop]
 func (p *nodeProcess) awaitExit() {
 	if err := p.cmd.Wait(); err != nil {
-		p.log.Debug("node returned error on wait", zap.String("processName", fmt.Sprintf("%q", p.name)), zap.String("error", fmt.Sprintf("%s", err)))
+		p.log.Debug("node returned error on wait", zap.String("node", p.name), zap.Error(err))
 	}
 
 	p.lock.Lock()
@@ -157,15 +157,15 @@ func (p *nodeProcess) Stop(ctx context.Context) int {
 	p.lock.Unlock()
 
 	if err := proc.Signal(os.Interrupt); err != nil {
-		p.log.Warn("sending SIGINT errored", zap.String("error", fmt.Sprintf("%v", err)))
+		p.log.Warn("sending SIGINT errored", zap.Error(err))
 	}
 
 	select {
 	case <-ctx.Done():
-		p.log.Warn("context cancelled while waiting for node to stop", zap.String("processName", fmt.Sprintf("%q", p.name)))
+		p.log.Warn("context cancelled while waiting for node to stop", zap.String("node", p.name))
 		killDescendants(int32(proc.Pid), p.log)
 		if err := proc.Signal(os.Kill); err != nil {
-			p.log.Warn("sending SIGKILL errored", zap.String("error", fmt.Sprintf("%v", err)))
+			p.log.Warn("sending SIGKILL errored", zap.Error(err))
 		}
 	case <-p.closedOnStop:
 	}
@@ -187,13 +187,13 @@ func (p *nodeProcess) Status() status.Status {
 func killDescendants(pid int32, log logging.Logger) {
 	procs, err := process.Processes()
 	if err != nil {
-		log.Warn("couldn't get processes", zap.String("error", fmt.Sprintf("%s", err)))
+		log.Warn("couldn't get processes", zap.Error(err))
 		return
 	}
 	for _, proc := range procs {
 		ppid, err := proc.Ppid()
 		if err != nil {
-			log.Warn("couldn't get process ID", zap.String("error", fmt.Sprintf("%s", err)))
+			log.Warn("couldn't get process ID", zap.Error(err))
 			continue
 		}
 		if ppid != pid {
@@ -201,7 +201,7 @@ func killDescendants(pid int32, log logging.Logger) {
 		}
 		killDescendants(proc.Pid, log)
 		if err := proc.Kill(); err != nil {
-			log.Warn("error killing process", zap.String("processId", fmt.Sprintf("%d", proc.Pid)), zap.String("error", fmt.Sprintf("%s", err)))
+			log.Warn("error killing process", zap.Int32("pid", proc.Pid), zap.Error(err))
 		}
 	}
 }

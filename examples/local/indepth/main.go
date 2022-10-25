@@ -8,12 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/local"
-	"github.com/ava-labs/avalanche-network-runner/network"
-	"github.com/ava-labs/avalanche-network-runner/network/node"
-	"github.com/ava-labs/avalanchego/config"
-	"github.com/ava-labs/avalanchego/staking"
-	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/MetalBlockchain/metal-network-runner/local"
+	"github.com/MetalBlockchain/metal-network-runner/network"
+	"github.com/MetalBlockchain/metal-network-runner/network/node"
+	"github.com/MetalBlockchain/metalgo/config"
+	"github.com/MetalBlockchain/metalgo/staking"
+	"github.com/MetalBlockchain/metalgo/utils/logging"
+	"go.uber.org/zap"
 )
 
 const (
@@ -34,9 +35,9 @@ func shutdownOnSignal(
 	closedOnShutdownChan chan struct{},
 ) {
 	sig := <-signalChan
-	log.Info("got OS signal %s", sig)
+	log.Info("got OS signal", zap.String("sig", fmt.Sprintf("%s", sig)))
 	if err := n.Stop(context.Background()); err != nil {
-		log.Info("error stopping network: %s", err)
+		log.Info("error stopping network", zap.String("error", fmt.Sprintf("%s", err)))
 	}
 	signal.Reset()
 	close(signalChan)
@@ -63,9 +64,9 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	binaryPath := fmt.Sprintf("%s%s", goPath, "/src/github.com/ava-labs/avalanchego/build/avalanchego")
+	binaryPath := fmt.Sprintf("%s%s", goPath, "/src/github.com/MetalBlockchain/metalgo/build/metalgo")
 	if err := run(log, binaryPath); err != nil {
-		log.Fatal("%s", err)
+		log.Fatal("fatal error", zap.String("error", fmt.Sprintf("%s", err)))
 		os.Exit(1)
 	}
 }
@@ -78,7 +79,7 @@ func run(log logging.Logger, binaryPath string) error {
 	}
 	defer func() { // Stop the network when this function returns
 		if err := nw.Stop(context.Background()); err != nil {
-			log.Info("error stopping network: %s", err)
+			log.Info("error stopping network", zap.String("error", fmt.Sprintf("%s", err)))
 		}
 	}()
 
@@ -104,7 +105,7 @@ func run(log logging.Logger, binaryPath string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("current network's nodes: %s", nodeNames)
+	log.Info("current network's nodes", zap.String("nodeNames", fmt.Sprintf("%s", nodeNames)))
 
 	// Get one node
 	node1, err := nw.GetNode(nodeNames[0])
@@ -117,7 +118,7 @@ func run(log logging.Logger, binaryPath string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("one node's ID is: %s", node1ID)
+	log.Info("one node's ID is", zap.String("nodeId", fmt.Sprintf("%s", node1ID)))
 
 	// Add a new node with generated cert/key/nodeid
 	stakingCert, stakingKey, err := staking.NewCertAndKeyBytes()
@@ -142,7 +143,7 @@ func run(log logging.Logger, binaryPath string) error {
 
 	// Remove one node
 	nodeToRemove := nodeNames[3]
-	log.Info("removing node %q", nodeToRemove)
+	log.Info("removing node", zap.String("nodeToRemove", fmt.Sprintf("%q", nodeToRemove)))
 	removeNodeCtx, removeNodeCtxCancel := context.WithTimeout(context.Background(), removeNodeTimeout)
 	defer removeNodeCtxCancel()
 	if err := nw.RemoveNode(removeNodeCtx, nodeToRemove); err != nil {
@@ -163,7 +164,7 @@ func run(log logging.Logger, binaryPath string) error {
 		return err
 	}
 	// Will have the new node but not the removed one
-	log.Info("updated network's nodes: %s", nodeNames)
+	log.Info("updated network's nodes", zap.String("nodeNames", fmt.Sprintf("%s", nodeNames)))
 	log.Info("Network will run until you CTRL + C to exit...")
 	// Wait until done shutting down network after SIGINT/SIGTERM
 	<-closedOnShutdownCh

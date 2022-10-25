@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ava-labs/avalanche-network-runner/network/node"
+	"github.com/MetalBlockchain/metal-network-runner/network/node"
 )
 
 var (

@@ -6,10 +6,10 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/ethclient"
-	"github.com/ava-labs/coreth/interfaces"
+	"github.com/MetalBlockchain/metalgo/ids"
+	"github.com/MetalBlockchain/coreth/core/types"
+	"github.com/MetalBlockchain/coreth/ethclient"
+	"github.com/MetalBlockchain/coreth/interfaces"
 	"github.com/ethereum/go-ethereum/common"
 )
 

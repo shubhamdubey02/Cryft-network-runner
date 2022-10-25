@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/network/node"
-	"github.com/ava-labs/avalanche-network-runner/utils"
-	"github.com/ava-labs/avalanchego/genesis"
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/avalanchego/utils/formatting/address"
-	"github.com/ava-labs/avalanchego/utils/units"
+	"github.com/MetalBlockchain/metal-network-runner/network/node"
+	"github.com/MetalBlockchain/metal-network-runner/utils"
+	"github.com/MetalBlockchain/metalgo/genesis"
+	"github.com/MetalBlockchain/metalgo/ids"
+	"github.com/MetalBlockchain/metalgo/utils/constants"
+	"github.com/MetalBlockchain/metalgo/utils/formatting/address"
+	"github.com/MetalBlockchain/metalgo/utils/units"
 )
 
 var cChainConfig map[string]interface{}
@@ -105,8 +105,8 @@ func NewAvalancheGoGenesis(
 	genesisVdrs []ids.NodeID,
 ) ([]byte, error) {
 	switch networkID {
-	case constants.TestnetID, constants.MainnetID, constants.LocalID:
-		return nil, errors.New("network ID can't be mainnet, testnet or local network ID")
+	case constants.TahoeID, constants.MainnetID, constants.LocalID:
+		return nil, errors.New("network ID can't be mainnet, tahoe or local network ID")
 	}
 	switch {
 	case len(genesisVdrs) == 0:

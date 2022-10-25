@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/local"
-	"github.com/ava-labs/avalanche-network-runner/pkg/logutil"
-	"github.com/ava-labs/avalanche-network-runner/rpcpb"
+	"github.com/MetalBlockchain/metal-network-runner/local"
+	"github.com/MetalBlockchain/metal-network-runner/pkg/logutil"
+	"github.com/MetalBlockchain/metal-network-runner/rpcpb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

@@ -9,9 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/local"
-	"github.com/ava-labs/avalanche-network-runner/network"
-	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/MetalBlockchain/metal-network-runner/local"
+	"github.com/MetalBlockchain/metal-network-runner/network"
+	"github.com/MetalBlockchain/metalgo/utils/logging"
+	"go.uber.org/zap"
 )
 
 const (
@@ -31,9 +32,9 @@ func shutdownOnSignal(
 	closedOnShutdownChan chan struct{},
 ) {
 	sig := <-signalChan
-	log.Info("got OS signal %s", sig)
+	log.Info("got OS signal", zap.String("sig", fmt.Sprintf("%s", sig)))
 	if err := n.Stop(context.Background()); err != nil {
-		log.Info("error stopping network: %s", err)
+		log.Info("error stopping network", zap.String("error", fmt.Sprintf("%s", err)))
 	}
 	signal.Reset()
 	close(signalChan)
@@ -58,9 +59,9 @@ func main() {
 	if goPath == "" {
 		goPath = build.Default.GOPATH
 	}
-	binaryPath := fmt.Sprintf("%s%s", goPath, "/src/github.com/ava-labs/avalanchego/build/avalanchego")
+	binaryPath := fmt.Sprintf("%s%s", goPath, "/src/github.com/MetalBlockchain/metalgo/build/avalanchego")
 	if err := run(log, binaryPath); err != nil {
-		log.Fatal("%s", err)
+		log.Fatal("fatal error", zap.String("error", fmt.Sprintf("%s", err)))
 		os.Exit(1)
 	}
 }
@@ -73,7 +74,7 @@ func run(log logging.Logger, binaryPath string) error {
 	}
 	defer func() { // Stop the network when this function returns
 		if err := nw.Stop(context.Background()); err != nil {
-			log.Info("error stopping network: %s", err)
+			log.Info("error stopping network", zap.String("error", fmt.Sprintf("%s", err)))
 		}
 	}()
 

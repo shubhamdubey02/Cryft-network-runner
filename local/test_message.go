@@ -1,6 +1,6 @@
 package local
 
-import "github.com/ava-labs/avalanchego/message"
+import "github.com/MetalBlockchain/metalgo/message"
 
 var _ message.OutboundMessage = &TestMsg{}
 

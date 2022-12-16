@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,6 +24,7 @@ import (
 	"github.com/MetalBlockchain/metalgo/network/peer"
 	"github.com/MetalBlockchain/metalgo/staking"
 	"github.com/MetalBlockchain/metalgo/utils/beacon"
+	"github.com/MetalBlockchain/metalgo/utils/crypto/bls"
 	"github.com/MetalBlockchain/metalgo/utils/ips"
 	"github.com/MetalBlockchain/metalgo/utils/logging"
 	"github.com/MetalBlockchain/metalgo/utils/wrappers"
@@ -31,19 +33,20 @@ import (
 )
 
 const (
-	defaultNodeNamePrefix = "node"
-	configFileName        = "config.json"
-	upgradeConfigFileName = "upgrade.json"
-	stakingKeyFileName    = "staking.key"
-	stakingCertFileName   = "staking.crt"
-	genesisFileName       = "genesis.json"
-	stopTimeout           = 30 * time.Second
-	healthCheckFreq       = 3 * time.Second
-	DefaultNumNodes       = 5
-	snapshotPrefix        = "anr-snapshot-"
-	rootDirPrefix         = "network-runner-root-data"
-	defaultDbSubdir       = "db"
-	defaultLogsSubdir     = "logs"
+	defaultNodeNamePrefix     = "node"
+	configFileName            = "config.json"
+	upgradeConfigFileName     = "upgrade.json"
+	stakingKeyFileName        = "staking.key"
+	stakingCertFileName       = "staking.crt"
+	stakingSigningKeyFileName = "signer.key"
+	genesisFileName           = "genesis.json"
+	stopTimeout               = 30 * time.Second
+	healthCheckFreq           = 3 * time.Second
+	DefaultNumNodes           = 5
+	snapshotPrefix            = "anr-snapshot-"
+	rootDirPrefix             = "network-runner-root-data"
+	defaultDbSubdir           = "db"
+	defaultLogsSubdir         = "logs"
 	// difference between unlock schedule locktime and startime in original genesis
 	genesisLocktimeStartimeDelta = 2836800
 )
@@ -58,7 +61,8 @@ var (
 		config.BootstrapIPsKey: {},
 		config.BootstrapIDsKey: {},
 	}
-	chainConfigSubDir = "chainConfigs"
+	chainConfigSubDir  = "chainConfigs"
+	subnetConfigSubDir = "subnetConfigs"
 
 	snapshotsRelPath = filepath.Join(".avalanche-network-runner", "snapshots")
 
@@ -100,6 +104,8 @@ type localNetwork struct {
 	chainConfigFiles map[string]string
 	// upgrade config files to use per default
 	upgradeConfigFiles map[string]string
+	// subnet config files to use per default
+	subnetConfigFiles map[string]string
 	// if true, for ports given in conf that are already taken, assign new random ones
 	reassignPortsIfUsed bool
 }
@@ -118,20 +124,12 @@ var (
 
 // populate default network config from embedded default directory
 func init() {
-	configsDir, err := fs.Sub(embeddedDefaultNetworkConfigDir, "default")
+	// load genesis, updating validation start time
+	genesisMap, err := network.LoadLocalGenesis()
 	if err != nil {
 		panic(err)
 	}
 
-	// load genesis, updating validation start time
-	genesis, err := fs.ReadFile(configsDir, "genesis.json")
-	if err != nil {
-		panic(err)
-	}
-	var genesisMap map[string]interface{}
-	if err = json.Unmarshal(genesis, &genesisMap); err != nil {
-		panic(err)
-	}
 	startTime := time.Now().Unix()
 	lockTime := startTime + genesisLocktimeStartimeDelta
 	genesisMap["startTime"] = float64(startTime)
@@ -158,12 +156,18 @@ func init() {
 			}
 		}
 	}
+
+	// now we can marshal the *whole* thing into bytes
 	updatedGenesis, err := json.Marshal(genesisMap)
 	if err != nil {
 		panic(err)
 	}
 
 	// load network flags
+	configsDir, err := fs.Sub(embeddedDefaultNetworkConfigDir, "default")
+	if err != nil {
+		panic(err)
+	}
 	flagsBytes, err := fs.ReadFile(configsDir, "flags.json")
 	if err != nil {
 		panic(err)
@@ -187,6 +191,7 @@ func init() {
 			"C": string(cChainConfig),
 		},
 		UpgradeConfigFiles: map[string]string{},
+		SubnetConfigFiles:  map[string]string{},
 	}
 
 	for i := 0; i < len(defaultNetworkConfig.NodeConfigs); i++ {
@@ -209,6 +214,12 @@ func init() {
 			panic(err)
 		}
 		defaultNetworkConfig.NodeConfigs[i].StakingCert = string(stakingCert)
+		stakingSigningKey, err := fs.ReadFile(configsDir, fmt.Sprintf("node%d/signer.key", i+1))
+		if err != nil {
+			panic(err)
+		}
+		encodedStakingSigningKey := base64.StdEncoding.EncodeToString(stakingSigningKey)
+		defaultNetworkConfig.NodeConfigs[i].StakingSigningKey = encodedStakingSigningKey
 		defaultNetworkConfig.NodeConfigs[i].IsBeacon = true
 	}
 
@@ -416,7 +427,17 @@ func (ln *localNetwork) loadConfig(ctx context.Context, networkConfig network.Co
 	ln.flags = networkConfig.Flags
 	ln.binaryPath = networkConfig.BinaryPath
 	ln.chainConfigFiles = networkConfig.ChainConfigFiles
+	if ln.chainConfigFiles == nil {
+		ln.chainConfigFiles = map[string]string{}
+	}
 	ln.upgradeConfigFiles = networkConfig.UpgradeConfigFiles
+	if ln.upgradeConfigFiles == nil {
+		ln.upgradeConfigFiles = map[string]string{}
+	}
+	ln.subnetConfigFiles = networkConfig.SubnetConfigFiles
+	if ln.subnetConfigFiles == nil {
+		ln.subnetConfigFiles = map[string]string{}
+	}
 
 	// Sort node configs so beacons start first
 	var nodeConfigs []node.Config
@@ -464,6 +485,12 @@ func (ln *localNetwork) addNode(nodeConfig node.Config) (node.Node, error) {
 	if nodeConfig.ChainConfigFiles == nil {
 		nodeConfig.ChainConfigFiles = map[string]string{}
 	}
+	if nodeConfig.UpgradeConfigFiles == nil {
+		nodeConfig.UpgradeConfigFiles = map[string]string{}
+	}
+	if nodeConfig.SubnetConfigFiles == nil {
+		nodeConfig.SubnetConfigFiles = map[string]string{}
+	}
 
 	// load node defaults
 	if nodeConfig.BinaryPath == "" {
@@ -481,6 +508,12 @@ func (ln *localNetwork) addNode(nodeConfig node.Config) (node.Node, error) {
 			nodeConfig.UpgradeConfigFiles[k] = v
 		}
 	}
+	for k, v := range ln.subnetConfigFiles {
+		_, ok := nodeConfig.SubnetConfigFiles[k]
+		if !ok {
+			nodeConfig.SubnetConfigFiles[k] = v
+		}
+	}
 	addNetworkFlags(ln.log, ln.flags, nodeConfig.Flags)
 
 	// it shouldn't happen that just one is empty, most probably both,
@@ -492,6 +525,15 @@ func (ln *localNetwork) addNode(nodeConfig node.Config) (node.Node, error) {
 		}
 		nodeConfig.StakingCert = string(stakingCert)
 		nodeConfig.StakingKey = string(stakingKey)
+	}
+	if nodeConfig.StakingSigningKey == "" {
+		key, err := bls.NewSecretKey()
+		if err != nil {
+			return nil, fmt.Errorf("couldn't generate new signing key: %w", err)
+		}
+		keyBytes := bls.SecretKeyToBytes(key)
+		encodedKey := base64.StdEncoding.EncodeToString(keyBytes)
+		nodeConfig.StakingSigningKey = encodedKey
 	}
 
 	if err := ln.setNodeName(&nodeConfig); err != nil {
@@ -757,10 +799,23 @@ func (ln *localNetwork) RestartNode(
 	whitelistedSubnets string,
 	chainConfigs map[string]string,
 	upgradeConfigs map[string]string,
+	subnetConfigs map[string]string,
 ) error {
 	ln.lock.Lock()
 	defer ln.lock.Unlock()
 
+	return ln.restartNode(ctx, nodeName, binaryPath, whitelistedSubnets, chainConfigs, upgradeConfigs, subnetConfigs)
+}
+
+func (ln *localNetwork) restartNode(
+	ctx context.Context,
+	nodeName string,
+	binaryPath string,
+	whitelistedSubnets string,
+	chainConfigs map[string]string,
+	upgradeConfigs map[string]string,
+	subnetConfigs map[string]string,
+) error {
 	node, ok := ln.nodes[nodeName]
 	if !ok {
 		return fmt.Errorf("node %q not found", nodeName)
@@ -788,6 +843,10 @@ func (ln *localNetwork) RestartNode(
 	// apply upgrade configs
 	for k, v := range upgradeConfigs {
 		nodeConfig.UpgradeConfigFiles[k] = v
+	}
+	// apply subnet configs
+	for k, v := range subnetConfigs {
+		nodeConfig.SubnetConfigFiles[k] = v
 	}
 
 	if err := ln.removeNode(ctx, nodeName); err != nil {
@@ -910,8 +969,8 @@ func (ln *localNetwork) buildFlags(
 
 	// avoid given these again, as apiPort/p2pPort can be dynamic even if given in nodeConfig
 	portFlags := map[string]struct{}{
-		config.HTTPPortKey:    struct{}{},
-		config.StakingPortKey: struct{}{},
+		config.HTTPPortKey:    {},
+		config.StakingPortKey: {},
 	}
 
 	// Add flags given in node config.

@@ -3,15 +3,15 @@ set -e
 
 export RUN_E2E="true"
 # e.g.,
-# ./scripts/tests.e2e.sh 1.7.12 1.7.13
+# ./scripts/tests.e2e.sh 1.9.4 1.9.4 0.4.5
 if ! [[ "$0" =~ scripts/tests.e2e.sh ]]; then
   echo "must be run from repository root"
   exit 255
 fi
 
-DEFAULT_VERSION_1=1.8.0
-DEFAULT_VERSION_2=1.8.1
-DEFAULT_SUBNET_EVM_VERSION=0.3.0
+DEFAULT_VERSION_1=1.9.4
+DEFAULT_VERSION_2=1.9.4
+DEFAULT_SUBNET_EVM_VERSION=0.4.5
 
 if [ $# == 0 ]; then
     VERSION_1=$DEFAULT_VERSION_1
@@ -131,6 +131,12 @@ fi
 echo "building runner"
 ./scripts/build.sh
 
+# Set the CGO flags to use the portable version of BLST
+#
+# We use "export" here instead of just setting a bash variable because we need
+# to pass this flag to all child processes spawned by the shell.
+export CGO_CFLAGS="-O -D__BLST_PORTABLE__"
+
 echo "building e2e.test"
 # to install the ginkgo binary (required for test build and run)
 go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
@@ -160,7 +166,7 @@ echo "running e2e tests"
 --grpc-gateway-endpoint="0.0.0.0:8081" \
 --avalanchego-path-1=/tmp/avalanchego-v${VERSION_1}/avalanchego \
 --avalanchego-path-2=/tmp/avalanchego-v${VERSION_2}/avalanchego \
---subnet-evm-path=/tmp/subnet-evm-v${SUBNET_EVM_VERSION}/subnet-evm
+--subnet-evm-path=/tmp/subnet-evm-v${SUBNET_EVM_VERSION}/subnet-evm || (kill ${PID}; exit)
 
-kill -9 ${PID}
+kill ${PID}
 echo "ALL SUCCESS!"

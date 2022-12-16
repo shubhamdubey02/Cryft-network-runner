@@ -11,74 +11,51 @@ This tool may be especially useful for development and testing.
 
 ## Installation
 
-### Using install script
-
-This is the preferred way. Does not require golang to be installed on the system.
-
 To download a binary for the latest release, run:
 
 ```sh
 curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s
 ```
 
-The binary will be installed inside the `./bin` directory (relative to where the install command was run).
-
-_Downloading binaries from the Github UI will cause permission errors on Mac._
+The binary will be installed inside the `~/bin` directory.
 
 To add the binary to your path, run
 
 ```sh
-cd bin
-export PATH=$PWD:$PATH
+export PATH=~/bin:$PATH
 ```
 
 To add it to your path permanently, add an export command to your shell initialization script (ex: .bashrc).
 
-#### Installing in Custom Location
+## Build from source code
 
-To download the binary into a specific directory, run:
-
-```sh
-curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s -- -b <relative directory>
-```
-
-### Install using golang
+This is only needed by advanced users who want to modify or test Avalanche Network Runner in specific ways.
 
 Requires golang to be installed on the system ([https://go.dev/doc/install](https://go.dev/doc/install)).
 
-```sh
-go install github.com/ava-labs/avalanche-network-runner@latest
-```
-
-After that, the `avalanche-network-runner` binary should be present under the `$HOME/go/bin/` directory. Consider adding this directory to the `PATH` environment variable.
-
-### Install by release download
-
-Does not require golang to be installed on the system.
-
-Download the desired distribution from [https://github.com/ava-labs/avalanche-network-runner/releases](https://github.com/ava-labs/avalanche-network-runner/releases).
-
-Uncompress and locate where is convenient. Consider adding the target bin directory to the `PATH` environment variable.
-
-### Install from source code and execute tests
-
-#### Download
+### Download
 
 ```sh
 git clone https://github.com/ava-labs/avalanche-network-runner.git
 ```
 
-#### Install
+### Build
 
 From inside the cloned directory:
 
 ```sh
-go install
+./scripts/build.sh
 ```
 
-After that, `avalanche-network-runner` binary should be present under `$HOME/go/bin/` directory. Consider adding this directory to the `PATH` environment variable.
+The binary will be installed inside the `./bin` directory.
 
-#### Run Unit Tests
+To add the binary to your path, run
+
+```sh
+export PATH=$PWD/bin:$PATH
+```
+
+### Run Unit Tests
 
 Inside the directory cloned above:
 
@@ -86,7 +63,7 @@ Inside the directory cloned above:
 go test ./...
 ```
 
-#### Run E2E tests
+### Run E2E tests
 
 The E2E test checks `avalanche-network-runner` RPC communication and control. It starts a network against a fresh RPC
 server and executes a set of query and control operations on it.
@@ -94,22 +71,8 @@ server and executes a set of query and control operations on it.
 To start it, execute inside the cloned directory:
 
 ```sh
-./scripts/tests.e2e.sh AVALANCHEGO_VERSION1 AVALANCHEGO_VERSION2
+./scripts/tests.e2e.sh
 ```
-
-The E2E test checks whether a node can be restarted with a different binary version. Provide two
-different versions as arguments. For Example:
-
-```sh
-./scripts/tests.e2e.sh 1.7.9 1.7.10
-```
-
-##### `RUN_E2E` environment variable
-
-To specify that the E2E test should be run with `go test`, set environment variable `RUN_E2E` to any non-empty value.
-
-This environment variable is correctly set when executing `./scripts/tests.e2e.sh`, but the user should consider
-setting it if trying to execute E2E tests without using that script.
 
 ## Using `avalanche-network-runner`
 
@@ -167,10 +130,10 @@ avalanche-network-runner control start \
 Additional optional parameters which can be passed to the start command:
 
 ```bash
-  --plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
-  --blockchain-specs '{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm.genesis.json"}'
-  --global-node-config '{"index-enabled":false, "api-admin-enabled":true,"network-peer-list-gossip-frequency":"300ms"}'
-  --custom-node-configs" '{"node1":{"log-level":"debug","api-admin-enabled":false},"node2":{...},...}'
+--plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
+--blockchain-specs '[{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm.genesis.json"}]'
+--global-node-config '{"index-enabled":false, "api-admin-enabled":true,"network-peer-list-gossip-frequency":"300ms"}'
+--custom-node-configs" '{"node1":{"log-level":"debug","api-admin-enabled":false},"node2":{...},...}'
 ```
 
 For example, to set `avalanchego --http-host` flag for all nodes:
@@ -341,19 +304,28 @@ avalanche-network-runner control create-subnets 5
 To create a blockchain without a subnet id (requires network restart):
 
 ```bash
-curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginDir":"'$PLUGIN_DIR'","customVms":[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'"}]}'
+curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginDir":"'$PLUGIN_DIR'","blockchainSpecs":[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'"}]}'
 
 # or
-avalanche-network-runner control create-blockchains --blockchain-specs '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'"}]' --plugin-dir $PLUGIN_DIR
+avalanche-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'"}]' --plugin-dir $PLUGIN_DIR
 ```
 
 To create a blockchain with a subnet id (does not require restart):
 
 ```bash
-curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginDir":"'$PLUGIN_DIR'","customVms":[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'"}]}'
+curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginDir":"'$PLUGIN_DIR'","blockchainSpecs":[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'"}]}'
 
 # or
-avalanche-network-runner control create-blockchains --blockchain-specs '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'"}]' --plugin-dir $PLUGIN_DIR
+avalanche-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'"}]' --plugin-dir $PLUGIN_DIR
+```
+
+To create a blockchain with a subnet id, and chain config, network upgrade and subnet config file paths (requires network restart):
+
+```bash
+curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginDir":"'$PLUGIN_DIR'","blockchainSpecs":[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'", "chain_config": "'$CHAIN_CONFIG_PATH'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]}'
+
+# or
+avalanche-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'", "chain_config": "'$CHAIN_CONFIG_PATH'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]' --plugin-dir $PLUGIN_DIR
 ```
 
 To remove (stop) a node:
@@ -561,7 +533,7 @@ cat /tmp/subnet-evm.genesis.json
 AVALANCHEGO_EXEC_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/avalanchego"
 AVALANCHEGO_PLUGIN_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/plugins"
 
-curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALANCHEGO_EXEC_PATH}'","numNodes":5,"logLevel":"INFO","pluginDir":"'${AVALANCHEGO_PLUGIN_PATH}'","customVms":{"subnetevm":"/tmp/subnet-evm.genesis.json"}}'
+curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALANCHEGO_EXEC_PATH}'","numNodes":5,"logLevel":"INFO","pluginDir":"'${AVALANCHEGO_PLUGIN_PATH}'","blockchainSpecs":[{"vm_name":"subnetevm","genesis":"/tmp/subnet-evm.genesis.json"}]}'
 
 # or
 avalanche-network-runner control start \
@@ -569,12 +541,26 @@ avalanche-network-runner control start \
 --endpoint="0.0.0.0:8080" \
 --avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
 --plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
---blockchain-specs '{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm.genesis.json"}'
+--blockchain-specs '[{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm.genesis.json"}]'
 ```
 
 ```bash
 # to get cluster information including blockchain ID
 curl -X POST -k http://localhost:8081/v1/control/status -d ''
+```
+
+Blockchain config file, network upgrade file, and subnet config file paths can be optionally specified at network start, eg:
+
+```bash
+curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALANCHEGO_EXEC_PATH}'","numNodes":5,"logLevel":"INFO","pluginDir":"'${AVALANCHEGO_PLUGIN_PATH}'","blockchainSpecs":[{"vm_name":"subnetevm","genesis":"/tmp/subnet-evm.genesis.json","chain_config":"'$CHAIN_CONFIG_PATH'","network_upgrade":"'$NETWORK_UPGRADE_PATH'","subnet_config":"'$SUBNET_CONFIG_PATH'"}]}'
+
+# or
+avalanche-network-runner control start \
+--log-level debug \
+--endpoint="0.0.0.0:8080" \
+--avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
+--plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
+--blockchain-specs '[{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm.genesis.json", "chain_config": "'$CHAIN_CONFIG_PATH'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]'
 ```
 
 ## `network-runner` RPC server: `blobvm` example
@@ -633,7 +619,7 @@ cat /tmp/blobvm.genesis.json
 AVALANCHEGO_EXEC_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/avalanchego"
 AVALANCHEGO_PLUGIN_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/plugins"
 
-curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALANCHEGO_EXEC_PATH}'","numNodes":5,"logLevel":"INFO","pluginDir":"'${AVALANCHEGO_PLUGIN_PATH}'","customVms":{"blobvm":"/tmp/blobvm.genesis.json"}}'
+curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALANCHEGO_EXEC_PATH}'","numNodes":5,"logLevel":"INFO","pluginDir":"'${AVALANCHEGO_PLUGIN_PATH}'","blockchainSpecs":[{"vm_name":"blobvm","genesis":"/tmp/blobvm.genesis.json"}]}'
 
 # or
 avalanche-network-runner control start \
@@ -641,12 +627,136 @@ avalanche-network-runner control start \
 --endpoint="0.0.0.0:8080" \
 --avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
 --plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
---blockchain-specs '{"vm_name": "blobvm", "genesis": "/tmp/blobvm.genesis.json"}'
+--blockchain-specs '[{"vm_name": "blobvm", "genesis": "/tmp/blobvm.genesis.json"}]'
 ```
 
 ```bash
 # to get cluster information including blockchain ID
 curl -X POST -k http://localhost:8081/v1/control/status -d ''
+```
+
+Blockchain config file and network upgrade file paths can be optionally specified at network start, eg:
+
+```bash
+curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALANCHEGO_EXEC_PATH}'","numNodes":5,"logLevel":"INFO","pluginDir":"'${AVALANCHEGO_PLUGIN_PATH}'","blockchainSpecs":[{"vm_name":"blobvm","genesis":"/tmp/blobvm.json","chain_config":"'$CHAIN_CONFIG_PATH'","network_upgrade":"'$NETWORK_UPGRADE_PATH'","subnet_config":"'$SUBNET_CONFIG_PATH'"}]}'
+
+# or
+avalanche-network-runner control start \
+--log-level debug \
+--endpoint="0.0.0.0:8080" \
+--avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
+--plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
+--blockchain-specs '[{"vm_name": "blobvm", "genesis": "/tmp/blobvm.genesis.json", "chain_config": "'$CHAIN_CONFIG_PATH'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]'
+```
+
+## `network-runner` RPC server: `timestampvm` example
+
+To start the server:
+
+```bash
+avalanche-network-runner server \
+--log-level debug \
+--port=":8080" \
+--grpc-gateway-port=":8081"
+
+# make sure network-runner server is up
+curl -X POST -k http://localhost:8081/v1/ping -d ''
+```
+
+To start the cluster with custom chains:
+
+```bash
+# or download from https://github.com/ava-labs/subnet-cli/releases
+cd ${HOME}/go/src/github.com/ava-labs/subnet-cli
+go install -v .
+subnet-cli create VMID timestampvm
+# tGas3T58KzdjcJ2iKSyiYsWiqYctRXaPTqBCA11BqEkNg8kPc
+
+# download from https://github.com/ava-labs/avalanchego/releases
+# or build
+rm -rf ${HOME}/go/src/github.com/ava-labs/avalanchego/build
+cd ${HOME}/go/src/github.com/ava-labs/avalanchego
+./scripts/build.sh
+
+# or download from https://github.com/ava-labs/timestampvm/releases
+# cd ${HOME}/go/src/github.com/ava-labs/timestampvm
+# ./scripts/build.sh
+cd ${HOME}/go/src/github.com/ava-labs/timestampvm
+go build -v \
+-o ${HOME}/go/src/github.com/ava-labs/avalanchego/build/plugins/tGas3T58KzdjcJ2iKSyiYsWiqYctRXaPTqBCA11BqEkNg8kPc \
+./main
+
+# make sure binaries are built
+find ${HOME}/go/src/github.com/ava-labs/avalanchego/build
+# for example
+# .../build
+# .../build/plugins
+# .../build/plugins/tGas3T58KzdjcJ2iKSyiYsWiqYctRXaPTqBCA11BqEkNg8kPc
+# .../build/plugins/evm
+# .../build/avalanchego
+
+# generate the genesis for the custom chain
+# NOTE: timestampvm takes arbitrary data for its genesis
+echo hello > /tmp/timestampvm.genesis.json
+```
+
+```bash
+# replace execPath with the path to AvalancheGo on your machine
+AVALANCHEGO_EXEC_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/avalanchego"
+AVALANCHEGO_PLUGIN_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/plugins"
+
+curl -X POST -k http://localhost:8081/v1/control/start -d '{"execPath":"'${AVALANCHEGO_EXEC_PATH}'","numNodes":5,"logLevel":"INFO","pluginDir":"'${AVALANCHEGO_PLUGIN_PATH}'","blockchainSpecs":[{"vmName":"timestampvm","genesis":"/tmp/timestampvm.genesis.json","blockchain_alias":"timestamp"}]}'
+
+# or
+avalanche-network-runner control start \
+--log-level debug \
+--endpoint="0.0.0.0:8080" \
+--avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
+--plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
+--blockchain-specs '[{"vm_name":"timestampvm","genesis":"/tmp/timestampvm.genesis.json","blockchain_alias":"timestamp"}]'
+```
+
+```bash
+# to get cluster information including blockchain ID
+curl -X POST -k http://localhost:8081/v1/control/status -d ''
+```
+
+To call `timestampvm` APIs:
+
+```bash
+# in this example,
+# "tGas3T58KzdjcJ2iKSyiYsWiqYctRXaPTqBCA11BqEkNg8kPc" is the Vm Id for the static service
+curl -X POST --data '{
+    "jsonrpc": "2.0",
+    "id"     : 1,
+    "method" : "timestampvm.encode",
+    "params" : {
+        "data": "mynewblock",
+        "length": 32
+    }
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/vm/tGas3T58KzdjcJ2iKSyiYsWiqYctRXaPTqBCA11BqEkNg8kPc
+
+# in this example,
+# "E8isHenre76NMxbJ3munSQatV8GoQ4XKWQg9vD34xMBqEFJGf" is the blockchain Id
+# "timestamp" is the blockchain alias
+# You can use 127.0.0.1:9650/ext/bc/timestamp or 127.0.0.1:9650/ext/bc/E8isHenre76NMxbJ3munSQatV8GoQ4XKWQg9vD34xMBqEFJGf
+curl -X POST --data '{
+    "jsonrpc": "2.0",
+    "method": "timestampvm.proposeBlock",
+    "params":{
+        "data":"0x6d796e6577626c6f636b0000000000000000000000000000000000000000000014228326"
+    },
+    "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/timestamp
+```
+
+```bash
+curl -X POST --data '{
+    "jsonrpc": "2.0",
+    "method": "timestampvm.getBlock",
+    "params":{},
+    "id": 1
+}' -H 'content-type:application/json;' 127.0.0.1:9650/ext/bc/timestamp
 ```
 
 ## Configuration
@@ -668,10 +778,16 @@ type Config struct {
   StakingKey string `json:"stakingKey"`
   // Must not be nil.
   StakingCert string `json:"stakingCert"`
+  // Must not be nil.
+  StakingSigningKey string `json:"stakingSigningKey"`
   // May be nil.
   ConfigFile string `json:"configFile"`
   // May be nil.
   ChainConfigFiles map[string]string `json:"chainConfigFiles"`
+  // May be nil.
+  UpgradeConfigFiles map[string]string `json:"upgradeConfigFiles"`
+  // May be nil.
+  SubnetConfigFiles map[string]string `json:"subnetConfigFiles"`
   // Flags can hold additional flags for the node.
   // It can be empty.
   // The precedence of flags handling is:

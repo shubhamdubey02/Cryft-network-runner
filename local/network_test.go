@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,12 +16,12 @@ import (
 	"github.com/MetalBlockchain/metal-network-runner/api"
 	apimocks "github.com/MetalBlockchain/metal-network-runner/api/mocks"
 	"github.com/MetalBlockchain/metal-network-runner/local/mocks"
+	healthmocks "github.com/MetalBlockchain/metal-network-runner/local/mocks/health"
 	"github.com/MetalBlockchain/metal-network-runner/network"
 	"github.com/MetalBlockchain/metal-network-runner/network/node"
 	"github.com/MetalBlockchain/metal-network-runner/network/node/status"
 	"github.com/MetalBlockchain/metal-network-runner/utils"
 	"github.com/MetalBlockchain/metalgo/api/health"
-	healthmocks "github.com/MetalBlockchain/metalgo/api/health/mocks"
 	"github.com/MetalBlockchain/metalgo/config"
 	"github.com/MetalBlockchain/metalgo/ids"
 	"github.com/MetalBlockchain/metalgo/message"
@@ -117,7 +118,7 @@ func newMockProcessSuccessful(node.Config, ...string) (NodeProcess, error) {
 
 type noOpInboundHandler struct{}
 
-func (*noOpInboundHandler) HandleInbound(message.InboundMessage) {}
+func (*noOpInboundHandler) HandleInbound(context.Context, message.InboundMessage) {}
 
 // Start a network with no nodes
 func TestNewNetworkEmpty(t *testing.T) {
@@ -912,7 +913,7 @@ func emptyNetworkConfig() (network.Config, error) {
 		[]network.AddrAndBalance{
 			{
 				Addr:    ids.GenerateTestShortID(),
-				Balance: 1,
+				Balance: big.NewInt(1),
 			},
 		},
 		nil,
@@ -935,6 +936,8 @@ func testNetworkConfig(t *testing.T) network.Config {
 	assert.NoError(err)
 	for i := 0; i < 3; i++ {
 		networkConfig.NodeConfigs[i].Name = fmt.Sprintf("node%d", i)
+		delete(networkConfig.NodeConfigs[i].Flags, config.HTTPPortKey)
+		delete(networkConfig.NodeConfigs[i].Flags, config.StakingPortKey)
 	}
 	return networkConfig
 }
@@ -1131,16 +1134,20 @@ func TestWriteFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	stakingKeyPath := filepath.Join(tmpDir, stakingKeyFileName)
-	stakingKeyFlag := fmt.Sprintf("--%s=%v", config.StakingKeyPathKey, stakingKeyPath)
+	stakingKeyFlag := fmt.Sprintf("--%s=%v", config.StakingTLSKeyPathKey, stakingKeyPath)
 	stakingCertPath := filepath.Join(tmpDir, stakingCertFileName)
 	stakingCertFlag := fmt.Sprintf("--%s=%v", config.StakingCertPathKey, stakingCertPath)
+	stakingSigningKeyPath := filepath.Join(tmpDir, stakingSigningKeyFileName)
+	stakingSigningKeyFlag := fmt.Sprintf("--%s=%v", config.StakingSignerKeyPathKey, stakingSigningKeyPath)
 	genesisPath := filepath.Join(tmpDir, genesisFileName)
 	genesisFlag := fmt.Sprintf("--%s=%v", config.GenesisConfigFileKey, genesisPath)
 	configFilePath := filepath.Join(tmpDir, configFileName)
 	configFileFlag := fmt.Sprintf("--%s=%v", config.ConfigFileKey, configFilePath)
 	chainConfigDir := filepath.Join(tmpDir, chainConfigSubDir)
+	subnetConfigDir := filepath.Join(tmpDir, subnetConfigSubDir)
 	cChainConfigPath := filepath.Join(tmpDir, chainConfigSubDir, "C", configFileName)
 	chainConfigDirFlag := fmt.Sprintf("--%s=%v", config.ChainConfigDirKey, chainConfigDir)
+	subnetConfigDirFlag := fmt.Sprintf("--%s=%v", config.SubnetConfigDirKey, subnetConfigDir)
 
 	type test struct {
 		name          string
@@ -1162,7 +1169,10 @@ func TestWriteFiles(t *testing.T) {
 			expectedFlags: []string{
 				stakingKeyFlag,
 				stakingCertFlag,
+				stakingSigningKeyFlag,
 				genesisFlag,
+				chainConfigDirFlag,
+				subnetConfigDirFlag,
 			},
 		},
 		{
@@ -1177,8 +1187,11 @@ func TestWriteFiles(t *testing.T) {
 			expectedFlags: []string{
 				stakingKeyFlag,
 				stakingCertFlag,
+				stakingSigningKeyFlag,
 				genesisFlag,
 				configFileFlag,
+				chainConfigDirFlag,
+				subnetConfigDirFlag,
 			},
 		},
 		{
@@ -1194,9 +1207,11 @@ func TestWriteFiles(t *testing.T) {
 			expectedFlags: []string{
 				stakingKeyFlag,
 				stakingCertFlag,
+				stakingSigningKeyFlag,
 				genesisFlag,
 				configFileFlag,
 				chainConfigDirFlag,
+				subnetConfigDirFlag,
 			},
 		},
 	}

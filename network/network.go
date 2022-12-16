@@ -23,7 +23,7 @@ type BlockchainSpec struct {
 	BlockchainAlias string
 }
 
-// Network is an abstraction of an Avalanche network
+// Network is an abstraction of an Metal network
 type Network interface {
 	// Returns nil if all the nodes in the network are healthy.
 	// A stopped network is considered unhealthy.

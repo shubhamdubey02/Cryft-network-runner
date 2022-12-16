@@ -164,7 +164,7 @@ func (lc *localNetwork) createConfig() error {
 			cfg.NodeConfigs[i].Flags = map[string]interface{}{}
 		}
 
-		// avalanchego expects buildDir (parent dir of pluginDir) to be provided at cmdline
+		// metalgo expects buildDir (parent dir of pluginDir) to be provided at cmdline
 		buildDir, err := getBuildDir(lc.execPath, lc.pluginDir)
 		if err != nil {
 			return err

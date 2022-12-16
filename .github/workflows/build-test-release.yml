@@ -16,10 +16,10 @@ jobs:
     name: Lint tests
     runs-on: ubuntu-latest
     steps:
-      - name: Allow access to avalanchego-operator repo
+      - name: Allow access to metalgo-operator repo
         env:
           GITHUB_ACCESS_TOKEN: ${{ secrets.SNOWBOT_PAT }}
-        run: git config --global url."https://${GITHUB_ACCESS_TOKEN}@github.com/ava-labs/avalanchego-operator".insteadOf "https://github.com/ava-labs/avalanchego-operator"
+        run: git config --global url."https://${GITHUB_ACCESS_TOKEN}@github.com/MetalBlockchain/metalgo-operator".insteadOf "https://github.com/MetalBlockchain/metalgo-operator"
       - uses: actions/checkout@v2
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
@@ -31,10 +31,10 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - name: Allow access to avalanchego-operator repo
+      - name: Allow access to metalgo-operator repo
         env:
           GITHUB_ACCESS_TOKEN: ${{ secrets.SNOWBOT_PAT }}
-        run: git config --global url."https://${GITHUB_ACCESS_TOKEN}@github.com/ava-labs/avalanchego-operator".insteadOf "https://github.com/ava-labs/avalanchego-operator"
+        run: git config --global url."https://${GITHUB_ACCESS_TOKEN}@github.com/MetalBlockchain/metalgo-operator".insteadOf "https://github.com/MetalBlockchain/metalgo-operator"
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-          path: avalanche-network-runner
+          path: metal-network-runner
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
@@ -96,7 +96,7 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --rm-dist
-          workdir: ./avalanche-network-runner/
+          workdir: ./metal-network-runner/
         env:
           # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#about-the-github_token-secret
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

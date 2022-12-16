@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	coreth_params "github.com/ava-labs/coreth/params"
+	coreth_params "github.com/MetalBlockchain/coreth/params"
 )
 
 //go:embed default/genesis.json

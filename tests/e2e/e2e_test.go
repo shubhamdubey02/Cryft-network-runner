@@ -88,15 +88,15 @@ func init() {
 	)
 	flag.StringVar(
 		&execPath1,
-		"avalanchego-path-1",
+		"metalgo-path-1",
 		"",
-		"avalanchego executable path (to upgrade from)",
+		"metalgo executable path (to upgrade from)",
 	)
 	flag.StringVar(
 		&execPath2,
-		"avalanchego-path-2",
+		"metalgo-path-2",
 		"",
-		"avalanchego executable path (to upgrade to)",
+		"metalgo executable path (to upgrade to)",
 	)
 	flag.StringVar(
 		&subnetEvmPath,

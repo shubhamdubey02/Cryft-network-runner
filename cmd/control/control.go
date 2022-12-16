@@ -90,7 +90,7 @@ func NewCommand() *cobra.Command {
 }
 
 var (
-	avalancheGoBinPath  string
+	metalGoBinPath      string
 	numNodes            uint32
 	pluginDir           string
 	globalNodeConfig    string
@@ -114,10 +114,10 @@ func newStartCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 	}
 	cmd.PersistentFlags().StringVar(
-		&avalancheGoBinPath,
-		"avalanchego-path",
+		&metalGoBinPath,
+		"metalgo-path",
 		"",
-		"avalanchego binary path",
+		"metalgo binary path",
 	)
 	cmd.PersistentFlags().Uint32Var(
 		&numNodes,
@@ -191,7 +191,7 @@ func newStartCommand() *cobra.Command {
 		false,
 		"true to assign dynamic ports",
 	)
-	if err := cmd.MarkPersistentFlagRequired("avalanchego-path"); err != nil {
+	if err := cmd.MarkPersistentFlagRequired("metalgo-path"); err != nil {
 		panic(err)
 	}
 	return cmd
@@ -265,7 +265,7 @@ func startFunc(cmd *cobra.Command, args []string) error {
 
 	info, err := cli.Start(
 		ctx,
-		avalancheGoBinPath,
+		metalGoBinPath,
 		opts...,
 	)
 	if err != nil {
@@ -530,10 +530,10 @@ func newAddNodeCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 	}
 	cmd.PersistentFlags().StringVar(
-		&avalancheGoBinPath,
-		"avalanchego-path",
+		&metalGoBinPath,
+		"metalgo-path",
 		"",
-		"avalanchego binary path",
+		"metalgo binary path",
 	)
 	cmd.PersistentFlags().StringVar(
 		&addNodeConfig,
@@ -609,7 +609,7 @@ func addNodeFunc(cmd *cobra.Command, args []string) error {
 	info, err := cli.AddNode(
 		ctx,
 		nodeName,
-		avalancheGoBinPath,
+		metalGoBinPath,
 		opts...,
 	)
 	cancel()
@@ -629,10 +629,10 @@ func newRestartNodeCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 	}
 	cmd.PersistentFlags().StringVar(
-		&avalancheGoBinPath,
-		"avalanchego-path",
+		&metalGoBinPath,
+		"metalgo-path",
 		"",
-		"avalanchego binary path",
+		"metalgo binary path",
 	)
 	cmd.PersistentFlags().StringVar(
 		&whitelistedSubnets,
@@ -671,7 +671,7 @@ func restartNodeFunc(cmd *cobra.Command, args []string) error {
 	defer cli.Close()
 
 	opts := []client.OpOption{
-		client.WithExecPath(avalancheGoBinPath),
+		client.WithExecPath(metalGoBinPath),
 		client.WithWhitelistedSubnets(whitelistedSubnets),
 	}
 
@@ -875,10 +875,10 @@ func newLoadSnapshotCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 	}
 	cmd.PersistentFlags().StringVar(
-		&avalancheGoBinPath,
-		"avalanchego-path",
+		&metalGoBinPath,
+		"metalgo-path",
 		"",
-		"avalanchego binary path",
+		"metalgo binary path",
 	)
 	cmd.PersistentFlags().StringVar(
 		&pluginDir,
@@ -933,7 +933,7 @@ func loadSnapshotFunc(cmd *cobra.Command, args []string) error {
 	defer cli.Close()
 
 	opts := []client.OpOption{
-		client.WithExecPath(avalancheGoBinPath),
+		client.WithExecPath(metalGoBinPath),
 		client.WithPluginDir(pluginDir),
 		client.WithRootDataDir(rootDataDir),
 		client.WithReassignPortsIfUsed(reassignPortsIfUsed),

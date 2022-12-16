@@ -44,8 +44,8 @@ func NetworkIDFromGenesis(genesis []byte) (uint32, error) {
 }
 
 var (
-	ErrInvalidExecPath        = errors.New("avalanche exec is invalid")
-	ErrNotExists              = errors.New("avalanche exec not exists")
+	ErrInvalidExecPath        = errors.New("metal exec is invalid")
+	ErrNotExists              = errors.New("metal exec not exists")
 	ErrNotExistsPlugin        = errors.New("plugin exec not exists")
 	ErrNotExistsPluginGenesis = errors.New("plugin genesis not exists")
 )

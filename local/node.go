@@ -43,7 +43,7 @@ const (
 	peerStartWaitTimeout        = 30 * time.Second
 )
 
-// Gives access to basic node info, and to most avalanchego apis
+// Gives access to basic node info, and to most metalgo apis
 type localNode struct {
 	// Must be unique across all nodes in this network.
 	name string

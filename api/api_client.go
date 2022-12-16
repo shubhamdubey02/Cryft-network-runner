@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 
+	"github.com/MetalBlockchain/coreth/plugin/evm"
 	"github.com/MetalBlockchain/metalgo/api/admin"
 	"github.com/MetalBlockchain/metalgo/api/health"
 	"github.com/MetalBlockchain/metalgo/api/info"
@@ -11,7 +12,6 @@ import (
 	"github.com/MetalBlockchain/metalgo/indexer"
 	"github.com/MetalBlockchain/metalgo/vms/avm"
 	"github.com/MetalBlockchain/metalgo/vms/platformvm"
-	"github.com/MetalBlockchain/coreth/plugin/evm"
 )
 
 // interface compliance
@@ -20,7 +20,7 @@ var (
 	_ NewAPIClientF = NewAPIClient
 )
 
-// APIClient gives access to most avalanchego apis (or suitable wrappers)
+// APIClient gives access to most metalgo apis (or suitable wrappers)
 type APIClient struct {
 	platform     platformvm.Client
 	xChain       avm.Client
@@ -39,7 +39,7 @@ type APIClient struct {
 // Returns a new API client for a node at [ipAddr]:[port].
 type NewAPIClientF func(ipAddr string, port uint16) Client
 
-// NewAPIClient initialize most of avalanchego apis
+// NewAPIClient initialize most of metalgo apis
 func NewAPIClient(ipAddr string, port uint16) Client {
 	uri := fmt.Sprintf("http://%s:%d", ipAddr, port)
 	return &APIClient{

@@ -13,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MetalBlockchain/metal-network-runner/network"
+	"github.com/MetalBlockchain/metal-network-runner/network/node"
+	"github.com/MetalBlockchain/metal-network-runner/utils"
 	"github.com/MetalBlockchain/metalgo/api/admin"
 	"github.com/MetalBlockchain/metalgo/config"
 	"github.com/MetalBlockchain/metalgo/genesis"
@@ -27,9 +30,6 @@ import (
 	"github.com/MetalBlockchain/metalgo/vms/secp256k1fx"
 	"github.com/MetalBlockchain/metalgo/wallet/subnet/primary"
 	"github.com/MetalBlockchain/metalgo/wallet/subnet/primary/common"
-	"github.com/MetalBlockchain/metal-network-runner/network"
-	"github.com/MetalBlockchain/metal-network-runner/network/node"
-	"github.com/MetalBlockchain/metal-network-runner/utils"
 	"go.uber.org/zap"
 )
 
@@ -511,7 +511,7 @@ func setupWallet(
 
 // add the nodes in [nodeInfos] as validators of the primary network, in case they are not
 // the validation starts as soon as possible and its duration is as long as possible, that is,
-// it is set to max accepted duration by avalanchego
+// it is set to max accepted duration by metalgo
 func (ln *localNetwork) addPrimaryValidators(
 	ctx context.Context,
 	platformCli platformvm.Client,
@@ -519,7 +519,7 @@ func (ln *localNetwork) addPrimaryValidators(
 	testKeyAddr ids.ShortID,
 ) error {
 	ln.log.Info(logging.Green.Wrap("adding the nodes as primary network validators"))
-	// ref. https://docs.avax.network/build/avalanchego-apis/p-chain/#platformgetcurrentvalidators
+	// ref. https://docs.metalblockchain.org/build/metalgo-apis/p-chain/#platformgetcurrentvalidators
 	cctx, cancel := createDefaultCtx(ctx)
 	vs, err := platformCli.GetCurrentValidators(cctx, constants.PrimaryNetworkID, nil)
 	cancel()

@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/MetalBlockchain/coreth v0.11.4
 	github.com/MetalBlockchain/metalgo v1.9.4
-	github.com/ava-labs/coreth v0.11.4
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.14.0
 	github.com/onsi/ginkgo/v2 v2.6.0
@@ -29,7 +28,6 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.10.0 // indirect
 	github.com/aead/siphash v1.0.1 // indirect
-	github.com/ava-labs/avalanchego v1.9.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.23.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect

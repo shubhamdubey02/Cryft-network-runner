@@ -20,7 +20,7 @@ curl -sSfL https://raw.githubusercontent.com/MetalBlockchain/metal-network-runne
 To install a specific version, just append the desired version to the command (must be an existing github tag like v1.3.1)
 
 ```sh
-curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s v1.3.1
+curl -sSfL https://raw.githubusercontent.com/MetalBlockchain/metal-network-runner/main/scripts/install.sh | sh -s v1.3.1
 ```
 
 The binary will be installed inside the `~/bin` directory.

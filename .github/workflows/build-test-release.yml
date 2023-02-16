@@ -16,27 +16,23 @@ jobs:
     name: Lint tests
     runs-on: ubuntu-latest
     steps:
-      - name: Allow access to metalgo-operator repo
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.SNOWBOT_PAT }}
-        run: git config --global url."https://${GITHUB_ACCESS_TOKEN}@github.com/MetalBlockchain/metalgo-operator".insteadOf "https://github.com/MetalBlockchain/metalgo-operator"
-      - uses: actions/checkout@v2
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
         with:
-          version: "v1.47.0"
-          working-directory: .
-          args: --timeout 3m
+          go-version: '1.18'
+          check-latest: true
+      - name: Run static analysis tests
+        shell: bash
+        run: scripts/lint.sh
+
   unit_test:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - name: Allow access to metalgo-operator repo
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.SNOWBOT_PAT }}
-        run: git config --global url."https://${GITHUB_ACCESS_TOKEN}@github.com/MetalBlockchain/metalgo-operator".insteadOf "https://github.com/MetalBlockchain/metalgo-operator"
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
           go-version: 1.18
       - run: go test -v -timeout 10m -race ./...
@@ -44,30 +40,33 @@ jobs:
           CGO_CFLAGS: "-O -D__BLST_PORTABLE__" # Set the CGO flags to use the portable version of BLST
   e2e_test:
     name: e2e tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+            os: [ubuntu-20.04, macos-12]
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.18
       - name: Run e2e tests
         shell: bash
-        run: scripts/tests.e2e.sh 1.9.4 1.9.4 0.4.5
+        run: scripts/tests.e2e.sh
   release:
     needs: [lint_test, unit_test, e2e_test]
     runs-on: ubuntu-20.04
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           path: metal-network-runner
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.18
       - name: Set up arm64 cross compiler
@@ -75,7 +74,7 @@ jobs:
           sudo apt-get -y update
           sudo apt-get -y install gcc-aarch64-linux-gnu
       - name: Checkout osxcross
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: tpoechtrager/osxcross
           path: osxcross

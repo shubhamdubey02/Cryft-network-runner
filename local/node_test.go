@@ -11,17 +11,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MetalBlockchain/metal-network-runner/network/node"
-	"github.com/MetalBlockchain/metalgo/ids"
-	"github.com/MetalBlockchain/metalgo/message"
-	"github.com/MetalBlockchain/metalgo/network/peer"
-	"github.com/MetalBlockchain/metalgo/staking"
-	"github.com/MetalBlockchain/metalgo/utils/constants"
-	"github.com/MetalBlockchain/metalgo/utils/ips"
-	"github.com/MetalBlockchain/metalgo/utils/wrappers"
-	"github.com/MetalBlockchain/metalgo/version"
+	"github.com/ava-labs/avalanche-network-runner/network/node"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/message"
+	"github.com/ava-labs/avalanchego/network/peer"
+	"github.com/ava-labs/avalanchego/proto/pb/p2p"
+	"github.com/ava-labs/avalanchego/staking"
+	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/utils/ips"
+	"github.com/ava-labs/avalanchego/utils/wrappers"
+	"github.com/ava-labs/avalanchego/version"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const bitmaskCodec = uint32(1 << 31)
@@ -44,8 +45,7 @@ func upgradeConn(myTLSCert *tls.Certificate, conn net.Conn) (ids.NodeID, net.Con
 // If an unexpected error occurs, or we get an unexpected message, sends an error on [errCh].
 // Sends nil on [errCh] if we get the expected message sequence.
 func verifyProtocol(
-	t *testing.T,
-	assert *assert.Assertions,
+	require *require.Assertions,
 	opSequence []message.Op,
 	mc message.Creator,
 	nodeConn net.Conn,
@@ -73,7 +73,7 @@ func verifyProtocol(
 	}
 	now := uint64(time.Now().Unix())
 	unsignedIP := peer.UnsignedIP{
-		IP:        myIP,
+		IPPort:    myIP,
 		Timestamp: now,
 	}
 	signer := myTLSCert.PrivateKey.(crypto.Signer)
@@ -124,9 +124,9 @@ func verifyProtocol(
 			return
 		}
 		msg, err := mc.Parse(msgBytes.Bytes(), peerID, func() {})
-		assert.NoError(err)
+		require.NoError(err)
 		op := msg.Op()
-		assert.Equal(expectedOpMsg, op)
+		require.Equal(expectedOpMsg, op)
 	}
 	// signal we are actually done
 	errCh <- nil
@@ -177,7 +177,7 @@ func sendMessage(nodeConn net.Conn, msgBytes []byte, errCh chan error) error {
 // TestAttachPeer tests that we can attach a test peer to a node
 // and that the node receives messages sent through the test peer
 func TestAttachPeer(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 
 	// [nodeConn] is the connection that [node] uses to read from/write to [peer] (defined below)
 	// Similar for [peerConn].
@@ -203,7 +203,7 @@ func TestAttachPeer(t *testing.T) {
 		true,
 		10*time.Second,
 	)
-	assert.NoError(err)
+	require.NoError(err)
 
 	// Expect the peer to send these messages in this order.
 	expectedMessages := []message.Op{
@@ -216,12 +216,12 @@ func TestAttachPeer(t *testing.T) {
 	// Start a goroutine that reads messages from the other end of that
 	// connection and asserts that we get the expected messages
 	errCh := make(chan error, 1)
-	go verifyProtocol(t, assert, expectedMessages, mc, nodeConn, errCh)
+	go verifyProtocol(require, expectedMessages, mc, nodeConn, errCh)
 
 	// attach a test peer to [node]
 	handler := &noOpInboundHandler{}
 	p, err := node.AttachPeer(context.Background(), handler)
-	assert.NoError(err)
+	require.NoError(err)
 
 	// we'll use a Chits message for testing. (We could use any message type.)
 	containerIDs := []ids.ID{
@@ -232,12 +232,12 @@ func TestAttachPeer(t *testing.T) {
 	requestID := uint32(42)
 	chainID := constants.PlatformChainID
 	// create the Chits message
-	msg, err := mc.Chits(chainID, requestID, containerIDs)
-	assert.NoError(err)
+	msg, err := mc.Chits(chainID, requestID, []ids.ID{}, containerIDs, p2p.EngineType_ENGINE_TYPE_AVALANCHE)
+	require.NoError(err)
 	// send chits to [node]
 	ok := p.Send(context.Background(), msg)
-	assert.True(ok)
+	require.True(ok)
 	// wait until the go routines are done
-	// also ensures that [assert] calls will be reflected in test results if failed
-	assert.NoError(<-errCh)
+	// also ensures that [require] calls will be reflected in test results if failed
+	require.NoError(<-errCh)
 }

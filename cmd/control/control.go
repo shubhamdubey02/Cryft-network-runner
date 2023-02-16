@@ -28,12 +28,12 @@ func init() {
 }
 
 var (
-	logLevel           string
-	whitelistedSubnets string
-	endpoint           string
-	dialTimeout        time.Duration
-	requestTimeout     time.Duration
-	log                logging.Logger
+	logLevel       string
+	trackSubnets   string
+	endpoint       string
+	dialTimeout    time.Duration
+	requestTimeout time.Duration
+	log            logging.Logger
 )
 
 // NOTE: Naming convention for node names is currently `node` + number, i.e. `node1,node2,node3,...node101`
@@ -54,6 +54,7 @@ func NewCommand() *cobra.Command {
 		newCreateBlockchainsCommand(),
 		newCreateSubnetsCommand(),
 		newHealthCommand(),
+		newWaitForHealthyCommand(),
 		newURIsCommand(),
 		newStatusCommand(),
 		newStreamStatusCommand(),
@@ -156,7 +157,7 @@ func newStartCommand() *cobra.Command {
 		"[optional] custom node configs as JSON string of map, for each node individually. Common entries override `global-node-config`, but can be combined. Invalidates `number-of-nodes` (provide all node configs if used).",
 	)
 	cmd.PersistentFlags().StringVar(
-		&whitelistedSubnets,
+		&trackSubnets,
 		"whitelisted-subnets",
 		"",
 		"[optional] whitelisted subnets (comma-separated)",
@@ -197,7 +198,7 @@ func newStartCommand() *cobra.Command {
 	return cmd
 }
 
-func startFunc(cmd *cobra.Command, args []string) error {
+func startFunc(*cobra.Command, []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -207,7 +208,7 @@ func startFunc(cmd *cobra.Command, args []string) error {
 	opts := []client.OpOption{
 		client.WithNumNodes(numNodes),
 		client.WithPluginDir(pluginDir),
-		client.WithWhitelistedSubnets(whitelistedSubnets),
+		client.WithTrackSubnets(trackSubnets),
 		client.WithRootDataDir(rootDataDir),
 		client.WithReassignPortsIfUsed(reassignPortsIfUsed),
 		client.WithDynamicPorts(dynamicPorts),
@@ -218,7 +219,7 @@ func startFunc(cmd *cobra.Command, args []string) error {
 		// validate it's valid JSON
 		var js json.RawMessage
 		if err := json.Unmarshal([]byte(globalNodeConfig), &js); err != nil {
-			return fmt.Errorf("failed to validate JSON for provided config file: %s", err)
+			return fmt.Errorf("failed to validate JSON for provided config file: %w", err)
 		}
 		opts = append(opts, client.WithGlobalNodeConfig(globalNodeConfig))
 	}
@@ -286,7 +287,7 @@ func newCreateBlockchainsCommand() *cobra.Command {
 	return cmd
 }
 
-func createBlockchainsFunc(cmd *cobra.Command, args []string) error {
+func createBlockchainsFunc(_ *cobra.Command, args []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -330,7 +331,7 @@ func newCreateSubnetsCommand() *cobra.Command {
 	return cmd
 }
 
-func createSubnetsFunc(cmd *cobra.Command, args []string) error {
+func createSubnetsFunc(*cobra.Command, []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -365,7 +366,7 @@ func newHealthCommand() *cobra.Command {
 	return cmd
 }
 
-func healthFunc(cmd *cobra.Command, args []string) error {
+func healthFunc(*cobra.Command, []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -383,6 +384,34 @@ func healthFunc(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func newWaitForHealthyCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "wait-for-healthy [options]",
+		Short: "Wait until local cluster + custom vms are ready.",
+		RunE:  waitForHealthy,
+		Args:  cobra.ExactArgs(0),
+	}
+	return cmd
+}
+
+func waitForHealthy(*cobra.Command, []string) error {
+	cli, err := newClient()
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+	resp, err := cli.WaitForHealthy(ctx)
+	if err != nil {
+		return err
+	}
+
+	ux.Print(log, logging.Green.Wrap("wait for healthy response: %+v"), resp)
+	return nil
+}
+
 func newURIsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "uris [options]",
@@ -393,7 +422,7 @@ func newURIsCommand() *cobra.Command {
 	return cmd
 }
 
-func urisFunc(cmd *cobra.Command, args []string) error {
+func urisFunc(*cobra.Command, []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -421,7 +450,7 @@ func newStatusCommand() *cobra.Command {
 	return cmd
 }
 
-func statusFunc(cmd *cobra.Command, args []string) error {
+func statusFunc(*cobra.Command, []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -457,7 +486,7 @@ func newStreamStatusCommand() *cobra.Command {
 	return cmd
 }
 
-func streamStatusFunc(cmd *cobra.Command, args []string) error {
+func streamStatusFunc(*cobra.Command, []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -502,7 +531,7 @@ func newRemoveNodeCommand() *cobra.Command {
 	return cmd
 }
 
-func removeNodeFunc(cmd *cobra.Command, args []string) error {
+func removeNodeFunc(_ *cobra.Command, args []string) error {
 	// no validation for empty string required, as covered by `cobra.ExactArgs`
 	nodeName := args[0]
 	cli, err := newClient()
@@ -542,6 +571,12 @@ func newAddNodeCommand() *cobra.Command {
 		"node config as string",
 	)
 	cmd.PersistentFlags().StringVar(
+		&pluginDir,
+		"plugin-dir",
+		"",
+		"[optional] plugin directory",
+	)
+	cmd.PersistentFlags().StringVar(
 		&chainConfigs,
 		"chain-configs",
 		"",
@@ -562,7 +597,7 @@ func newAddNodeCommand() *cobra.Command {
 	return cmd
 }
 
-func addNodeFunc(cmd *cobra.Command, args []string) error {
+func addNodeFunc(_ *cobra.Command, args []string) error {
 	// no validation for empty string required, as covered by `cobra.ExactArgs`
 	nodeName := args[0]
 	cli, err := newClient()
@@ -571,14 +606,16 @@ func addNodeFunc(cmd *cobra.Command, args []string) error {
 	}
 	defer cli.Close()
 
-	opts := []client.OpOption{}
+	opts := []client.OpOption{
+		client.WithPluginDir(pluginDir),
+	}
 
 	if addNodeConfig != "" {
 		ux.Print(log, logging.Yellow.Wrap("WARNING: overriding node configs with custom provided config %s"), addNodeConfig)
 		// validate it's valid JSON
 		var js json.RawMessage
 		if err := json.Unmarshal([]byte(addNodeConfig), &js); err != nil {
-			return fmt.Errorf("failed to validate JSON for provided config file: %s", err)
+			return fmt.Errorf("failed to validate JSON for provided config file: %w", err)
 		}
 		opts = append(opts, client.WithGlobalNodeConfig(addNodeConfig))
 	}
@@ -635,10 +672,16 @@ func newRestartNodeCommand() *cobra.Command {
 		"metalgo binary path",
 	)
 	cmd.PersistentFlags().StringVar(
-		&whitelistedSubnets,
+		&trackSubnets,
 		"whitelisted-subnets",
 		"",
-		"whitelisted subnets (comma-separated)",
+		"[optional] whitelisted subnets (comma-separated)",
+	)
+	cmd.PersistentFlags().StringVar(
+		&pluginDir,
+		"plugin-dir",
+		"",
+		"[optional] plugin directory",
 	)
 	cmd.PersistentFlags().StringVar(
 		&chainConfigs,
@@ -661,7 +704,7 @@ func newRestartNodeCommand() *cobra.Command {
 	return cmd
 }
 
-func restartNodeFunc(cmd *cobra.Command, args []string) error {
+func restartNodeFunc(_ *cobra.Command, args []string) error {
 	// no validation for empty string required, as covered by `cobra.ExactArgs`
 	nodeName := args[0]
 	cli, err := newClient()
@@ -672,7 +715,8 @@ func restartNodeFunc(cmd *cobra.Command, args []string) error {
 
 	opts := []client.OpOption{
 		client.WithExecPath(metalGoBinPath),
-		client.WithWhitelistedSubnets(whitelistedSubnets),
+		client.WithPluginDir(pluginDir),
+		client.WithTrackSubnets(trackSubnets),
 	}
 
 	if chainConfigs != "" {
@@ -722,7 +766,7 @@ func newAttachPeerCommand() *cobra.Command {
 	return cmd
 }
 
-func attachPeerFunc(cmd *cobra.Command, args []string) error {
+func attachPeerFunc(_ *cobra.Command, args []string) error {
 	// no validation for empty string required, as covered by `cobra.ExactArgs`
 	nodeName := args[0]
 	cli, err := newClient()
@@ -786,7 +830,7 @@ func newSendOutboundMessageCommand() *cobra.Command {
 	return cmd
 }
 
-func sendOutboundMessageFunc(cmd *cobra.Command, args []string) error {
+func sendOutboundMessageFunc(_ *cobra.Command, args []string) error {
 	// no validation for empty string required, as covered by `cobra.ExactArgs`
 	nodeName := args[0]
 	cli, err := newClient()
@@ -821,7 +865,7 @@ func newStopCommand() *cobra.Command {
 	return cmd
 }
 
-func stopFunc(cmd *cobra.Command, args []string) error {
+func stopFunc(*cobra.Command, []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -849,7 +893,7 @@ func newSaveSnapshotCommand() *cobra.Command {
 	return cmd
 }
 
-func saveSnapshotFunc(cmd *cobra.Command, args []string) error {
+func saveSnapshotFunc(_ *cobra.Command, args []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -925,7 +969,7 @@ func newLoadSnapshotCommand() *cobra.Command {
 	return cmd
 }
 
-func loadSnapshotFunc(cmd *cobra.Command, args []string) error {
+func loadSnapshotFunc(_ *cobra.Command, args []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -967,7 +1011,7 @@ func loadSnapshotFunc(cmd *cobra.Command, args []string) error {
 		// validate it's valid JSON
 		var js json.RawMessage
 		if err := json.Unmarshal([]byte(globalNodeConfig), &js); err != nil {
-			return fmt.Errorf("failed to validate JSON for provided config file: %s", err)
+			return fmt.Errorf("failed to validate JSON for provided config file: %w", err)
 		}
 		opts = append(opts, client.WithGlobalNodeConfig(globalNodeConfig))
 	}
@@ -993,7 +1037,7 @@ func newRemoveSnapshotCommand() *cobra.Command {
 	return cmd
 }
 
-func removeSnapshotFunc(cmd *cobra.Command, args []string) error {
+func removeSnapshotFunc(_ *cobra.Command, args []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
@@ -1020,7 +1064,7 @@ func newGetSnapshotNamesCommand() *cobra.Command {
 	}
 }
 
-func getSnapshotNamesFunc(cmd *cobra.Command, args []string) error {
+func getSnapshotNamesFunc(*cobra.Command, []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err

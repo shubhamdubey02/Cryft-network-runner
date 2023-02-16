@@ -14,13 +14,14 @@ var (
 )
 
 type BlockchainSpec struct {
-	VmName          string
-	Genesis         []byte
-	SubnetId        *string
-	ChainConfig     []byte
-	NetworkUpgrade  []byte
-	SubnetConfig    []byte
-	BlockchainAlias string
+	VMName             string
+	Genesis            []byte
+	SubnetID           *string
+	ChainConfig        []byte
+	NetworkUpgrade     []byte
+	SubnetConfig       []byte
+	BlockchainAlias    string
+	PerNodeChainConfig map[string][]byte
 }
 
 // Network is an abstraction of an Metal network
@@ -56,10 +57,10 @@ type Network interface {
 	RemoveSnapshot(string) error
 	// Get name of available snapshots
 	GetSnapshotNames() ([]string, error)
-	// Restart a given node using the same config, optionally changing binary path,
-	// whitelisted subnets, a map of chain configs, a map of upgrade configs, and
+	// Restart a given node using the same config, optionally changing binary path, plugin dir,
+	// track subnets, a map of chain configs, a map of upgrade configs, and
 	// a map of subnet configs
-	RestartNode(context.Context, string, string, string, map[string]string, map[string]string, map[string]string) error
+	RestartNode(context.Context, string, string, string, string, map[string]string, map[string]string, map[string]string) error
 	// Create the specified blockchains
 	CreateBlockchains(context.Context, []BlockchainSpec) error
 	// Create the given numbers of subnets

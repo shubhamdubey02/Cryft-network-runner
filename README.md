@@ -17,6 +17,12 @@ To download a binary for the latest release, run:
 curl -sSfL https://raw.githubusercontent.com/MetalBlockchain/metal-network-runner/main/scripts/install.sh | sh -s
 ```
 
+To install a specific version, just append the desired version to the command (must be an existing github tag like v1.3.1)
+
+```sh
+curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-network-runner/main/scripts/install.sh | sh -s v1.3.1
+```
+
 The binary will be installed inside the `~/bin` directory.
 
 To add the binary to your path, run
@@ -326,6 +332,27 @@ curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginD
 
 # or
 metal-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'", "chain_config": "'$CHAIN_CONFIG_PATH'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]' --plugin-dir $PLUGIN_DIR
+```
+
+Chain config can also be defined on a per node basis. For that, a per node chain config file is needed, which is a JSON that specifies the chain config per node. For example, given the following as the contents of the file with path `$PER_NODE_CHAIN_CONFIG`:
+
+```json
+{
+    "node1": {"rpc-tx-fee-cap": 101},
+    "node2": {"rpc-tx-fee-cap": 102},
+    "node3": {"rpc-tx-fee-cap": 103},
+    "node4": {"rpc-tx-fee-cap": 104},
+    "node5": {"rpc-tx-fee-cap": 105}
+}
+```
+
+Then a blockchain with different chain configs per node can be created with this command:
+
+```bash
+curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginDir":"'$PLUGIN_DIR'","blockchainSpecs":[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'", "per_node_chain_config": "'$PER_NODE_CHAIN_CONFIG'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]}'
+
+# or
+avalanche-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'", "per_node_chain_config": "'$PER_NODE_CHAIN_CONFIG'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]' --plugin-dir $PLUGIN_DIR
 ```
 
 To remove (stop) a node:

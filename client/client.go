@@ -33,6 +33,7 @@ type Client interface {
 	CreateBlockchains(ctx context.Context, blockchainSpecs []*rpcpb.BlockchainSpec) (*rpcpb.CreateBlockchainsResponse, error)
 	CreateSubnets(ctx context.Context, opts ...OpOption) (*rpcpb.CreateSubnetsResponse, error)
 	Health(ctx context.Context) (*rpcpb.HealthResponse, error)
+	WaitForHealthy(ctx context.Context) (*rpcpb.WaitForHealthyResponse, error)
 	URIs(ctx context.Context) ([]string, error)
 	Status(ctx context.Context) (*rpcpb.StatusResponse, error)
 	StreamStatus(ctx context.Context, pushInterval time.Duration) (<-chan *rpcpb.ClusterInfo, error)
@@ -106,14 +107,14 @@ func (c *client) Start(ctx context.Context, execPath string, opts ...OpOption) (
 		UpgradeConfigs: ret.upgradeConfigs,
 		SubnetConfigs:  ret.subnetConfigs,
 	}
-	if ret.whitelistedSubnets != "" {
-		req.WhitelistedSubnets = &ret.whitelistedSubnets
+	if ret.trackSubnets != "" {
+		req.WhitelistedSubnets = &ret.trackSubnets
 	}
 	if ret.rootDataDir != "" {
 		req.RootDataDir = &ret.rootDataDir
 	}
 	if ret.pluginDir != "" {
-		req.PluginDir = &ret.pluginDir
+		req.PluginDir = ret.pluginDir
 	}
 	if len(ret.blockchainSpecs) > 0 {
 		req.BlockchainSpecs = ret.blockchainSpecs
@@ -157,6 +158,11 @@ func (c *client) CreateSubnets(ctx context.Context, opts ...OpOption) (*rpcpb.Cr
 func (c *client) Health(ctx context.Context) (*rpcpb.HealthResponse, error) {
 	c.log.Info("health")
 	return c.controlc.Health(ctx, &rpcpb.HealthRequest{})
+}
+
+func (c *client) WaitForHealthy(ctx context.Context) (*rpcpb.WaitForHealthyResponse, error) {
+	c.log.Info("wait for healthy")
+	return c.controlc.WaitForHealthy(ctx, &rpcpb.WaitForHealthyRequest{})
 }
 
 func (c *client) URIs(ctx context.Context) ([]string, error) {
@@ -238,6 +244,10 @@ func (c *client) AddNode(ctx context.Context, name string, execPath string, opts
 		SubnetConfigs:  ret.subnetConfigs,
 	}
 
+	if ret.pluginDir != "" {
+		req.PluginDir = ret.pluginDir
+	}
+
 	c.log.Info("add node", zap.String("name", name))
 	return c.controlc.AddNode(ctx, req)
 }
@@ -255,8 +265,11 @@ func (c *client) RestartNode(ctx context.Context, name string, opts ...OpOption)
 	if ret.execPath != "" {
 		req.ExecPath = &ret.execPath
 	}
-	if ret.whitelistedSubnets != "" {
-		req.WhitelistedSubnets = &ret.whitelistedSubnets
+	if ret.pluginDir != "" {
+		req.PluginDir = ret.pluginDir
+	}
+	if ret.trackSubnets != "" {
+		req.WhitelistedSubnets = &ret.trackSubnets
 	}
 	req.ChainConfigs = ret.chainConfigs
 	req.UpgradeConfigs = ret.upgradeConfigs
@@ -300,7 +313,7 @@ func (c *client) LoadSnapshot(ctx context.Context, snapshotName string, opts ...
 		req.ExecPath = &ret.execPath
 	}
 	if ret.pluginDir != "" {
-		req.PluginDir = &ret.pluginDir
+		req.PluginDir = ret.pluginDir
 	}
 	if ret.rootDataDir != "" {
 		req.RootDataDir = &ret.rootDataDir
@@ -336,7 +349,7 @@ func (c *client) Close() error {
 type Op struct {
 	numNodes            uint32
 	execPath            string
-	whitelistedSubnets  string
+	trackSubnets        string
 	globalNodeConfig    string
 	rootDataDir         string
 	pluginDir           string
@@ -376,9 +389,15 @@ func WithExecPath(execPath string) OpOption {
 	}
 }
 
-func WithWhitelistedSubnets(whitelistedSubnets string) OpOption {
+func WithWhitelistedSubnets(trackSubnets string) OpOption {
 	return func(op *Op) {
-		op.whitelistedSubnets = whitelistedSubnets
+		op.trackSubnets = trackSubnets
+	}
+}
+
+func WithTrackSubnets(trackSubnets string) OpOption {
+	return func(op *Op) {
+		op.trackSubnets = trackSubnets
 	}
 }
 

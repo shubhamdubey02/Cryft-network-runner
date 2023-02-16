@@ -3,15 +3,15 @@ set -e
 
 export RUN_E2E="true"
 # e.g.,
-# ./scripts/tests.e2e.sh 1.9.4 1.9.4 0.4.5
+# ./scripts/tests.e2e.sh $DEFAULT_VERSION1 $DEFAULT_VERSION2 $DEFAULT_SUBNET_EVM_VERSION
 if ! [[ "$0" =~ scripts/tests.e2e.sh ]]; then
   echo "must be run from repository root"
   exit 255
 fi
 
-DEFAULT_VERSION_1=1.9.4
-DEFAULT_VERSION_2=1.9.4
-DEFAULT_SUBNET_EVM_VERSION=0.4.5
+DEFAULT_VERSION_1=1.9.7
+DEFAULT_VERSION_2=1.9.6
+DEFAULT_SUBNET_EVM_VERSION=0.4.8
 
 if [ $# == 0 ]; then
     VERSION_1=$DEFAULT_VERSION_1
@@ -79,7 +79,10 @@ then
     ############################
     # download metalgo
     # https://github.com/MetalBlockchain/metalgo/releases
+    GOARCH=$(go env GOARCH)
+    GOOS=$(go env GOOS)
     DOWNLOAD_URL=https://github.com/MetalBlockchain/metalgo/releases/download/v${VERSION_2}/metalgo-linux-${GOARCH}-v${VERSION_2}.tar.gz
+    DOWNLOAD_PATH=/tmp/avalanchego.tar.gz
     if [[ ${GOOS} == "darwin" ]]; then
       DOWNLOAD_URL=https://github.com/MetalBlockchain/metalgo/releases/download/v${VERSION_2}/metalgo-macos-v${VERSION_2}.zip
       DOWNLOAD_PATH=/tmp/metalgo.zip
@@ -124,7 +127,8 @@ then
     mkdir /tmp/subnet-evm-v${SUBNET_EVM_VERSION}
     tar xzvf ${DOWNLOAD_PATH} -C /tmp/subnet-evm-v${SUBNET_EVM_VERSION}
     # NOTE: We are copying the subnet-evm binary here to a plugin hardcoded as srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy which corresponds to the VM name `subnetevm` used as such in the test
-    cp /tmp/subnet-evm-v${SUBNET_EVM_VERSION}/subnet-evm /tmp/metalgo-v${VERSION_2}/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+    mkdir -p /tmp/metalgo-v${VERSION_1}/plugins/
+    cp /tmp/subnet-evm-v${SUBNET_EVM_VERSION}/subnet-evm /tmp/metalgo-v${VERSION_1}/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
     find /tmp/subnet-evm-v${SUBNET_EVM_VERSION}/subnet-evm
 fi
 ############################
@@ -146,7 +150,7 @@ ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 snapshots_dir=/tmp/metal-network-runner-snapshots-e2e/
 rm -rf $snapshots_dir
 
-killall network.runner || echo
+killall avalanche-network-runner || true
 
 echo "launch local test cluster in the background"
 bin/metal-network-runner \
@@ -158,15 +162,20 @@ server \
 #--disable-nodes-output \
 PID=${!}
 
+function cleanup()
+{
+  echo "shutting down network runner"
+  kill ${PID}
+}
+trap cleanup EXIT
+
 echo "running e2e tests"
 ./tests/e2e/e2e.test \
 --ginkgo.v \
+--ginkgo.fail-fast \
 --log-level debug \
 --grpc-endpoint="0.0.0.0:8080" \
 --grpc-gateway-endpoint="0.0.0.0:8081" \
 --metalgo-path-1=/tmp/metalgo-v${VERSION_1}/metalgo \
 --metalgo-path-2=/tmp/metalgo-v${VERSION_2}/metalgo \
---subnet-evm-path=/tmp/subnet-evm-v${SUBNET_EVM_VERSION}/subnet-evm || (kill ${PID}; exit)
-
-kill ${PID}
-echo "ALL SUCCESS!"
+--subnet-evm-path=/tmp/subnet-evm-v${SUBNET_EVM_VERSION}/subnet-evm

@@ -9,8 +9,8 @@ if ! [[ "$0" =~ scripts/tests.e2e.sh ]]; then
   exit 255
 fi
 
-DEFAULT_VERSION_1=1.9.0
-DEFAULT_VERSION_2=1.9.8
+DEFAULT_VERSION_1=1.9.8
+DEFAULT_VERSION_2=1.9.0
 DEFAULT_SUBNET_EVM_VERSION=0.4.9
 
 if [ $# == 0 ]; then
@@ -82,7 +82,7 @@ then
     GOARCH=$(go env GOARCH)
     GOOS=$(go env GOOS)
     DOWNLOAD_URL=https://github.com/MetalBlockchain/metalgo/releases/download/v${VERSION_2}/metalgo-linux-${GOARCH}-v${VERSION_2}.tar.gz
-    DOWNLOAD_PATH=/tmp/avalanchego.tar.gz
+    DOWNLOAD_PATH=/tmp/metalgo.tar.gz
     if [[ ${GOOS} == "darwin" ]]; then
       DOWNLOAD_URL=https://github.com/MetalBlockchain/metalgo/releases/download/v${VERSION_2}/metalgo-macos-v${VERSION_2}.zip
       DOWNLOAD_PATH=/tmp/metalgo.zip
@@ -150,7 +150,7 @@ ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 snapshots_dir=/tmp/metal-network-runner-snapshots-e2e/
 rm -rf $snapshots_dir
 
-killall avalanche-network-runner || true
+killall metal-network-runner || true
 
 echo "launch local test cluster in the background"
 bin/metal-network-runner \

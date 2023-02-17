@@ -167,7 +167,7 @@ func (ln *localNetwork) installCustomChains(
 	}
 
 	baseWallet, avaxAssetID, testKeyAddr, err := setupWallet(ctx, clientURI, pTXs, ln.log)
-	fmt.Printf("AVAX Asset ID %s", avaxAssetID.String())
+	fmt.Printf("METAL Asset ID %s", avaxAssetID.String())
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,7 @@ func (ln *localNetwork) installCustomChains(
 	if err != nil {
 		return nil, err
 	}
-	ln.log.Info("base wallet AVAX balance", zap.Uint64("balance", balances[avaxAssetID]), zap.String("address", testKeyAddr.String()))
+	ln.log.Info("base wallet METAL balance", zap.Uint64("balance", balances[avaxAssetID]), zap.String("address", testKeyAddr.String()))
 
 	return chainInfos, nil
 }
@@ -318,7 +318,7 @@ func (ln *localNetwork) setupWalletAndInstallSubnets(
 	if err != nil {
 		return nil, err
 	}
-	ln.log.Info("base wallet AVAX balance", zap.Uint64("balance", balances[avaxAssetID]), zap.String("address", testKeyAddr.String()))
+	ln.log.Info("base wallet METAL balance", zap.Uint64("balance", balances[avaxAssetID]), zap.String("address", testKeyAddr.String()))
 
 	return subnetIDs, nil
 }
@@ -500,7 +500,7 @@ func setupWallet(
 	}
 	bal, ok := balances[avaxAssetID]
 	if bal <= 1*units.Avax || !ok {
-		return nil, ids.Empty, ids.ShortEmpty, fmt.Errorf("not enough AVAX balance %v in the address %q", bal, testKeyAddr)
+		return nil, ids.Empty, ids.ShortEmpty, fmt.Errorf("not enough METAL balance %v in the address %q", bal, testKeyAddr)
 	}
 	log.Info("fetched base wallet", zap.String("api", clientURI), zap.Uint64("balance", bal), zap.String("address", testKeyAddr.String()))
 

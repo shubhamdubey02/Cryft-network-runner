@@ -34,7 +34,7 @@ import (
 
 const (
 	defaultHealthyTimeout = 5 * time.Second
-	nodeVersion           = "avalanche/1.9.5 extra"
+	nodeVersion           = "metal/1.9.5 extra"
 )
 
 var (

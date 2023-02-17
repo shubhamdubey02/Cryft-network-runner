@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/MetalBlockchain/coreth/plugin/evm"
 	"github.com/MetalBlockchain/metalgo/api/admin"
 	"github.com/MetalBlockchain/metalgo/api/health"
 	"github.com/MetalBlockchain/metalgo/api/info"
@@ -9,7 +10,6 @@ import (
 	"github.com/MetalBlockchain/metalgo/indexer"
 	"github.com/MetalBlockchain/metalgo/vms/avm"
 	"github.com/MetalBlockchain/metalgo/vms/platformvm"
-	"github.com/MetalBlockchain/coreth/plugin/evm"
 )
 
 // Issues API calls to a node

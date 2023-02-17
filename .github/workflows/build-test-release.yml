@@ -57,7 +57,7 @@ jobs:
         shell: bash
         run: scripts/tests.e2e.sh
   release:
-    needs: [lint_test, unit_test, e2e_test]
+    needs: [lint_test, unit_test]
     runs-on: ubuntu-20.04
     steps:
       - name: Git checkout

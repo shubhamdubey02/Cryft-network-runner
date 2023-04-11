@@ -26,7 +26,6 @@ import (
 	"github.com/MetalBlockchain/metalgo/utils/units"
 	"github.com/MetalBlockchain/metalgo/vms/platformvm"
 	"github.com/MetalBlockchain/metalgo/vms/platformvm/txs"
-	"github.com/MetalBlockchain/metalgo/vms/platformvm/validator"
 	"github.com/MetalBlockchain/metalgo/vms/secp256k1fx"
 	"github.com/MetalBlockchain/metalgo/wallet/subnet/primary"
 	"github.com/MetalBlockchain/metalgo/wallet/subnet/primary/common"
@@ -538,7 +537,7 @@ func (ln *localNetwork) addPrimaryValidators(
 
 		cctx, cancel = createDefaultCtx(ctx)
 		txID, err := baseWallet.P().IssueAddValidatorTx(
-			&validator.Validator{
+			&txs.Validator{
 				NodeID: nodeID,
 				Start:  uint64(time.Now().Add(validationStartOffset).Unix()),
 				End:    uint64(time.Now().Add(validationDuration).Unix()),
@@ -632,8 +631,8 @@ func (ln *localNetwork) addSubnetValidators(
 			}
 			cctx, cancel := createDefaultCtx(ctx)
 			txID, err := baseWallet.P().IssueAddSubnetValidatorTx(
-				&validator.SubnetValidator{
-					Validator: validator.Validator{
+				&txs.SubnetValidator{
+					Validator: txs.Validator{
 						NodeID: nodeID,
 						// reasonable delay in most/slow test environments
 						Start: uint64(time.Now().Add(validationStartOffset).Unix()),

@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	rpcb "github.com/ava-labs/avalanche-network-runner/rpcpb"
-	"github.com/ava-labs/avalanche-network-runner/ux"
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/staking"
-	"github.com/ava-labs/avalanchego/utils/logging"
+	rpcb "github.com/MetalBlockchain/metal-network-runner/rpcpb"
+	"github.com/MetalBlockchain/metal-network-runner/ux"
+	"github.com/MetalBlockchain/metalgo/ids"
+	"github.com/MetalBlockchain/metalgo/staking"
+	"github.com/MetalBlockchain/metalgo/utils/logging"
 )
 
 const (
@@ -47,8 +47,8 @@ func NetworkIDFromGenesis(genesis []byte) (uint32, error) {
 }
 
 var (
-	ErrInvalidExecPath = errors.New("avalanche exec is invalid")
-	ErrNotExists       = errors.New("avalanche exec not exists")
+	ErrInvalidExecPath = errors.New("metal exec is invalid")
+	ErrNotExists       = errors.New("metal exec not exists")
 	ErrNotExistsPlugin = errors.New("plugin exec not exists")
 )
 

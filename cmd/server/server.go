@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/server"
-	"github.com/ava-labs/avalanche-network-runner/utils"
-	"github.com/ava-labs/avalanche-network-runner/utils/constants"
-	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/MetalBlockchain/metal-network-runner/server"
+	"github.com/MetalBlockchain/metal-network-runner/utils"
+	"github.com/MetalBlockchain/metal-network-runner/utils/constants"
+	"github.com/MetalBlockchain/metalgo/utils/logging"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )

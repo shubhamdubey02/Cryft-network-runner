@@ -13,16 +13,16 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ava-labs/avalanche-network-runner/local"
-	"github.com/ava-labs/avalanche-network-runner/network"
-	"github.com/ava-labs/avalanche-network-runner/network/node"
-	"github.com/ava-labs/avalanche-network-runner/rpcpb"
-	"github.com/ava-labs/avalanche-network-runner/utils/constants"
-	"github.com/ava-labs/avalanche-network-runner/ux"
-	"github.com/ava-labs/avalanchego/config"
-	"github.com/ava-labs/avalanchego/ids"
-	avago_constants "github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/MetalBlockchain/metal-network-runner/local"
+	"github.com/MetalBlockchain/metal-network-runner/network"
+	"github.com/MetalBlockchain/metal-network-runner/network/node"
+	"github.com/MetalBlockchain/metal-network-runner/rpcpb"
+	"github.com/MetalBlockchain/metal-network-runner/utils/constants"
+	"github.com/MetalBlockchain/metal-network-runner/ux"
+	"github.com/MetalBlockchain/metalgo/config"
+	"github.com/MetalBlockchain/metalgo/ids"
+	avago_constants "github.com/MetalBlockchain/metalgo/utils/constants"
+	"github.com/MetalBlockchain/metalgo/utils/logging"
 	"golang.org/x/exp/maps"
 )
 
@@ -36,13 +36,13 @@ scrape_configs:
     static_configs:
       - targets: 
         - localhost:9090
-  - job_name: avalanchego-machine
+  - job_name: metalgo-machine
     static_configs:
      - targets: 
        - localhost:9100
        labels:
          alias: machine
-  - job_name: avalanchego
+  - job_name: metalgo
     metrics_path: /ext/metrics
     static_configs:
       - targets:

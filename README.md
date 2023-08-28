@@ -472,7 +472,7 @@ METALGO_EXEC_PATH="metalgo"
 curl -X POST -k http://localhost:8081/v1/control/pausenode -d '{"name":"node99","logLevel":"INFO"}'
 
 # or
-avalanche-network-runner control pause-node \
+metal-network-runner control pause-node \
 --request-timeout=3m \
 --log-level debug \
 --endpoint="0.0.0.0:8080" \
@@ -482,13 +482,13 @@ node99
 To resume a paused node (in this case, node named `node99`):
 ```bash
 # e.g., ${HOME}/go/src/github.com/ava-labs/avalanchego/build/avalanchego
-AVALANCHEGO_EXEC_PATH="avalanchego"
+METALGO_EXEC_PATH="metalgo"
 
 
 curl -X POST -k http://localhost:8081/v1/control/resumenode -d '{"name":"node99","logLevel":"INFO"}'
 
 # or
-avalanche-network-runner control resume-node \
+metal-network-runner control resume-node \
 --request-timeout=3m \
 --log-level debug \
 --endpoint="0.0.0.0:8080" \

@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ava-labs/avalanchego/vms/platformvm/reward"
+	"github.com/MetalBlockchain/metalgo/vms/platformvm/reward"
 
-	"github.com/ava-labs/avalanchego/vms/avm"
-	"github.com/ava-labs/avalanchego/vms/components/avax"
-	"github.com/ava-labs/avalanchego/vms/components/verify"
-	"github.com/ava-labs/avalanchego/wallet/chain/x"
+	"github.com/MetalBlockchain/metalgo/vms/avm"
+	"github.com/MetalBlockchain/metalgo/vms/components/avax"
+	"github.com/MetalBlockchain/metalgo/vms/components/verify"
+	"github.com/MetalBlockchain/metalgo/wallet/chain/x"
 
 	"github.com/MetalBlockchain/metal-network-runner/network"
 	"github.com/MetalBlockchain/metal-network-runner/network/node"

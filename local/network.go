@@ -18,21 +18,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/MetalBlockchain/metal-network-runner/api"
-	"github.com/MetalBlockchain/metal-network-runner/network"
-	"github.com/MetalBlockchain/metal-network-runner/network/node"
-	"github.com/MetalBlockchain/metal-network-runner/network/node/status"
-	"github.com/MetalBlockchain/metal-network-runner/utils"
-	"github.com/MetalBlockchain/metal-network-runner/utils/constants"
-	"github.com/MetalBlockchain/metalgo/config"
-	"github.com/MetalBlockchain/metalgo/network/peer"
-	"github.com/MetalBlockchain/metalgo/staking"
-	"github.com/MetalBlockchain/metalgo/utils/beacon"
-	"github.com/MetalBlockchain/metalgo/utils/crypto/bls"
-	"github.com/MetalBlockchain/metalgo/utils/ips"
-	"github.com/MetalBlockchain/metalgo/utils/logging"
-	"github.com/MetalBlockchain/metalgo/utils/set"
-	"github.com/MetalBlockchain/metalgo/utils/wrappers"
+	"github.com/ava-labs/avalanche-network-runner/api"
+	"github.com/ava-labs/avalanche-network-runner/network"
+	"github.com/ava-labs/avalanche-network-runner/network/node"
+	"github.com/ava-labs/avalanche-network-runner/network/node/status"
+	"github.com/ava-labs/avalanche-network-runner/utils"
+	"github.com/ava-labs/avalanche-network-runner/utils/constants"
+	"github.com/ava-labs/avalanchego/config"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/network/peer"
+	"github.com/ava-labs/avalanchego/staking"
+	"github.com/ava-labs/avalanchego/utils/beacon"
+	"github.com/ava-labs/avalanchego/utils/crypto/bls"
+	"github.com/ava-labs/avalanchego/utils/ips"
+	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"go.uber.org/zap"
 	"golang.org/x/exp/maps"
 	"golang.org/x/mod/semver"
@@ -115,6 +116,8 @@ type localNetwork struct {
 	subnetConfigFiles map[string]string
 	// if true, for ports given in conf that are already taken, assign new random ones
 	reassignPortsIfUsed bool
+	// map from subnet id to elastic subnet tx id
+	subnetID2ElasticSubnetID map[ids.ID]ids.ID
 }
 
 type deprecatedFlagEsp struct {
@@ -317,16 +320,17 @@ func newNetwork(
 	}
 	// Create the network
 	net := &localNetwork{
-		nextNodeSuffix:      1,
-		nodes:               map[string]*localNode{},
-		onStopCh:            make(chan struct{}),
-		log:                 log,
-		bootstraps:          beacon.NewSet(),
-		newAPIClientF:       newAPIClientF,
-		nodeProcessCreator:  nodeProcessCreator,
-		rootDir:             rootDir,
-		snapshotsDir:        snapshotsDir,
-		reassignPortsIfUsed: reassignPortsIfUsed,
+		nextNodeSuffix:           1,
+		nodes:                    map[string]*localNode{},
+		onStopCh:                 make(chan struct{}),
+		log:                      log,
+		bootstraps:               beacon.NewSet(),
+		newAPIClientF:            newAPIClientF,
+		nodeProcessCreator:       nodeProcessCreator,
+		rootDir:                  rootDir,
+		snapshotsDir:             snapshotsDir,
+		reassignPortsIfUsed:      reassignPortsIfUsed,
+		subnetID2ElasticSubnetID: map[ids.ID]ids.ID{},
 	}
 	return net, nil
 }

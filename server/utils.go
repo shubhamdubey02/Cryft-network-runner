@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 
-	"github.com/ava-labs/avalanche-network-runner/rpcpb"
+	"github.com/MetalBlockchain/metal-network-runner/rpcpb"
 )
 
 func deepCopy(i *rpcpb.ClusterInfo) (*rpcpb.ClusterInfo, error) {

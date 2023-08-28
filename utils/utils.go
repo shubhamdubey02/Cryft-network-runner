@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	rpcb "github.com/ava-labs/avalanche-network-runner/rpcpb"
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/staking"
+	rpcb "github.com/MetalBlockchain/metal-network-runner/rpcpb"
+	"github.com/MetalBlockchain/metalgo/ids"
+	"github.com/MetalBlockchain/metalgo/staking"
 )
 
 const (

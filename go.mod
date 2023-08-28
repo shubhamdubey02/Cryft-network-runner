@@ -3,9 +3,9 @@ module github.com/MetalBlockchain/metal-network-runner
 go 1.19
 
 require (
-	github.com/MetalBlockchain/coreth v0.11.9-rc.0
-	github.com/MetalBlockchain/metalgo v1.9.16
-	github.com/ethereum/go-ethereum v1.12.0
+	github.com/MetalBlockchain/coreth v0.12.0-rc.2
+	github.com/MetalBlockchain/metalgo v1.10.0
+	github.com/ethereum/go-ethereum v1.10.26
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0
 	github.com/onsi/ginkgo/v2 v2.7.0
 	github.com/onsi/gomega v1.25.0
@@ -25,6 +25,7 @@ require (
 )
 
 require (
+	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.10.0 // indirect

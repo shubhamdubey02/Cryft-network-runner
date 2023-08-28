@@ -61,6 +61,8 @@ func NewCommand() *cobra.Command {
 		newStreamStatusCommand(),
 		newAddNodeCommand(),
 		newRemoveNodeCommand(),
+		newPauseNodeCommand(),
+		newResumeNodeCommand(),
 		newRestartNodeCommand(),
 		newAttachPeerCommand(),
 		newSendOutboundMessageCommand(),
@@ -100,7 +102,6 @@ var (
 	blockchainSpecsStr  string
 	customNodeConfigs   string
 	rootDataDir         string
-	numSubnets          uint32
 	chainConfigs        string
 	upgradeConfigs      string
 	subnetConfigs       string
@@ -340,7 +341,7 @@ func createBlockchainsFunc(_ *cobra.Command, args []string) error {
 		return err
 	}
 
-	ux.Print(log, logging.Green.Wrap("deploy-blockchains response: %+v"), info)
+	ux.Print(log, logging.Green.Wrap("create-blockchains response: %+v"), info)
 	return nil
 }
 
@@ -349,39 +350,36 @@ func newCreateSubnetsCommand() *cobra.Command {
 		Use:   "create-subnets [options]",
 		Short: "Create subnets.",
 		RunE:  createSubnetsFunc,
-		Args:  cobra.ExactArgs(0),
+		Args:  cobra.ExactArgs(1),
 	}
-	cmd.PersistentFlags().Uint32Var(
-		&numSubnets,
-		"num-subnets",
-		0,
-		"number of subnets",
-	)
 	return cmd
 }
 
-func createSubnetsFunc(*cobra.Command, []string) error {
+func createSubnetsFunc(_ *cobra.Command, args []string) error {
 	cli, err := newClient()
 	if err != nil {
 		return err
 	}
 	defer cli.Close()
 
-	opts := []client.OpOption{
-		client.WithNumSubnets(numSubnets),
+	subnetSpecsStr := args[0]
+
+	subnetSpecs := []*rpcpb.SubnetSpec{}
+	if err := json.Unmarshal([]byte(subnetSpecsStr), &subnetSpecs); err != nil {
+		return err
 	}
 
 	ctx := getAsyncContext()
 
 	info, err := cli.CreateSubnets(
 		ctx,
-		opts...,
+		subnetSpecs,
 	)
 	if err != nil {
 		return err
 	}
 
-	ux.Print(log, logging.Green.Wrap("add-subnets response: %+v"), info)
+	ux.Print(log, logging.Green.Wrap("create-subnets response: %+v"), info)
 	return nil
 }
 
@@ -577,6 +575,66 @@ func removeNodeFunc(_ *cobra.Command, args []string) error {
 	}
 
 	ux.Print(log, logging.Green.Wrap("remove node response: %+v"), info)
+	return nil
+}
+
+func newPauseNodeCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "pause-node node-name [options]",
+		Short: "Pauses a node.",
+		RunE:  pauseNodeFunc,
+		Args:  cobra.ExactArgs(1),
+	}
+	return cmd
+}
+
+func pauseNodeFunc(_ *cobra.Command, args []string) error {
+	// no validation for empty string required, as covered by `cobra.ExactArgs`
+	nodeName := args[0]
+	cli, err := newClient()
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	info, err := cli.PauseNode(ctx, nodeName)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	ux.Print(log, logging.Green.Wrap("pause node response: %+v"), info)
+	return nil
+}
+
+func newResumeNodeCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "resume-node node-name [options]",
+		Short: "Resumes a node.",
+		RunE:  resumeNodeFunc,
+		Args:  cobra.ExactArgs(1),
+	}
+	return cmd
+}
+
+func resumeNodeFunc(_ *cobra.Command, args []string) error {
+	// no validation for empty string required, as covered by `cobra.ExactArgs`
+	nodeName := args[0]
+	cli, err := newClient()
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	info, err := cli.ResumeNode(ctx, nodeName)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	ux.Print(log, logging.Green.Wrap("resume node response: %+v"), info)
 	return nil
 }
 

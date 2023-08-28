@@ -8,13 +8,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/MetalBlockchain/metal-network-runner/network/node"
-	"github.com/MetalBlockchain/metal-network-runner/utils"
-	"github.com/MetalBlockchain/metalgo/genesis"
-	"github.com/MetalBlockchain/metalgo/ids"
-	"github.com/MetalBlockchain/metalgo/utils/constants"
-	"github.com/MetalBlockchain/metalgo/utils/formatting/address"
-	"github.com/MetalBlockchain/metalgo/utils/units"
+	"github.com/ava-labs/avalanche-network-runner/network/node"
+	"github.com/ava-labs/avalanche-network-runner/utils"
+	"github.com/ava-labs/avalanchego/genesis"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/utils/formatting/address"
+	"github.com/ava-labs/avalanchego/utils/units"
+	"golang.org/x/exp/maps"
 )
 
 var cChainConfig map[string]interface{}
@@ -186,10 +187,7 @@ func NewMetalGoGenesis(
 		}
 	}
 	// avoid modifying original cChainConfig
-	localCChainConfig := map[string]interface{}{}
-	for k, v := range cChainConfig {
-		localCChainConfig[k] = v
-	}
+	localCChainConfig := maps.Clone(cChainConfig)
 	localCChainConfig["alloc"] = cChainAllocs
 	cChainConfigBytes, _ := json.Marshal(localCChainConfig)
 	config.CChainGenesis = string(cChainConfigBytes)

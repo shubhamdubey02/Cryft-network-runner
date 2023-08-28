@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/MetalBlockchain/metal-network-runner/network/node"
+	"github.com/ava-labs/avalanche-network-runner/network/node"
+	"github.com/ava-labs/avalanchego/ids"
 )
 
 var (
@@ -13,13 +14,18 @@ var (
 	ErrNodeNotFound = errors.New("node not found in network")
 )
 
+type SubnetSpec struct {
+	Participants []string
+	SubnetConfig []byte
+}
+
 type BlockchainSpec struct {
 	VMName             string
 	Genesis            []byte
 	SubnetID           *string
+	SubnetSpec         *SubnetSpec
 	ChainConfig        []byte
 	NetworkUpgrade     []byte
-	SubnetConfig       []byte
 	BlockchainAlias    string
 	PerNodeChainConfig map[string][]byte
 }
@@ -39,6 +45,12 @@ type Network interface {
 	// Stop the node with this name.
 	// Returns ErrStopped if Stop() was previously called.
 	RemoveNode(ctx context.Context, name string) error
+	// Pause the node with this name.
+	// Returns ErrStopped if Stop() was previously called.
+	PauseNode(ctx context.Context, name string) error
+	// Resume the node with this name.
+	// Returns ErrStopped if Stop() was previously called.
+	ResumeNode(ctx context.Context, name string) error
 	// Return the node with this name.
 	// Returns ErrStopped if Stop() was previously called.
 	GetNode(name string) (node.Node, error)
@@ -62,7 +74,7 @@ type Network interface {
 	// a map of subnet configs
 	RestartNode(context.Context, string, string, string, string, map[string]string, map[string]string, map[string]string) error
 	// Create the specified blockchains
-	CreateBlockchains(context.Context, []BlockchainSpec) error
+	CreateBlockchains(context.Context, []BlockchainSpec) ([]ids.ID, error)
 	// Create the given numbers of subnets
-	CreateSubnets(context.Context, uint32) error
+	CreateSubnets(context.Context, []SubnetSpec) ([]ids.ID, error)
 }

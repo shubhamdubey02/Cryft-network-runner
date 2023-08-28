@@ -11,16 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MetalBlockchain/metal-network-runner/network/node"
-	"github.com/MetalBlockchain/metalgo/ids"
-	"github.com/MetalBlockchain/metalgo/message"
-	"github.com/MetalBlockchain/metalgo/network/peer"
-	"github.com/MetalBlockchain/metalgo/proto/pb/p2p"
-	"github.com/MetalBlockchain/metalgo/staking"
-	"github.com/MetalBlockchain/metalgo/utils/constants"
-	"github.com/MetalBlockchain/metalgo/utils/ips"
-	"github.com/MetalBlockchain/metalgo/utils/wrappers"
-	"github.com/MetalBlockchain/metalgo/version"
+	"github.com/ava-labs/avalanche-network-runner/network/node"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/message"
+	"github.com/ava-labs/avalanchego/network/peer"
+	"github.com/ava-labs/avalanchego/staking"
+	"github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/utils/ips"
+	"github.com/ava-labs/avalanchego/utils/wrappers"
+	"github.com/ava-labs/avalanchego/version"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
@@ -232,7 +231,7 @@ func TestAttachPeer(t *testing.T) {
 	requestID := uint32(42)
 	chainID := constants.PlatformChainID
 	// create the Chits message
-	msg, err := mc.Chits(chainID, requestID, []ids.ID{}, containerIDs, p2p.EngineType_ENGINE_TYPE_AVALANCHE)
+	msg, err := mc.Chits(chainID, requestID, []ids.ID{}, containerIDs)
 	require.NoError(err)
 	// send chits to [node]
 	ok := p.Send(context.Background(), msg)

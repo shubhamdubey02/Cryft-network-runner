@@ -298,13 +298,42 @@ curl -X POST -k http://localhost:8081/v1/control/removesnapshot -d '{"snapshot_n
 metal-network-runner control remove-snapshot snapshotName
 ```
 
+To create 1 validated subnet, with all existing nodes as participants (requires network restart):
+
+```bash
+curl -X POST -k http://localhost:8081/v1/control/createsubnets -d '[{}]'
+
+# or
+avalanche-network-runner control create-subnets '[{}]'
+```
+
+To create 1 validated subnet, with some of existing nodes as participants (requires network restart):
+
+```bash
+curl -X POST -k http://localhost:8081/v1/control/createsubnets -d '[{"participants": ["node1", "node2"]}]'
+
+# or
+avalanche-network-runner control create-subnets '[{"participants": ["node1", "node2"]}]'
+```
+
+To create 1 validated subnet, with some of existing nodes and another new node as participants (requires network restart):
+
+```bash
+curl -X POST -k http://localhost:8081/v1/control/createsubnets -d '[{"participants": ["node1", "node2", "testNode"]}]'
+
+# or
+avalanche-network-runner control create-subnets '[{"participants": ["node1", "node2", "testNode"]}]'
+
+```
+
 To create N validated subnets (requires network restart):
 
 ```bash
-curl -X POST -k http://localhost:8081/v1/control/createsubnets -d '{"num_subnets":5}'
+curl -X POST -k http://localhost:8081/v1/control/createsubnets -d '[{}, {"participants": ["node1", "node2", "node3"]}, {"participants": ["node1", "node2", "testNode"]}]'
 
 # or
-metal-network-runner control create-subnets 5
+metal-network-runner control create-subnets '[{}, {"participants": ["node1", "node2", "node3"]}, {"participants": ["node1", "node2", "testNode"]}]'
+
 ```
 
 To create a blockchain without a subnet id (requires network restart):
@@ -332,6 +361,15 @@ curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginD
 
 # or
 metal-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_id": "'$SUBNET_ID'", "chain_config": "'$CHAIN_CONFIG_PATH'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]' --plugin-dir $PLUGIN_DIR
+```
+
+To create a blockchain with a new subnet id with select nodes as participants (requires network restart):
+(New nodes will first be added as primary validators similar to the process in `create-subnets`)
+```bash
+curl -X POST -k http://localhost:8081/v1/control/createblockchains -d '{"pluginDir":"'$PLUGIN_DIR'","blockchainSpecs":[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_spec": "{"participants": ["node1", "node2", "testNode"]}"]}'
+
+# or
+avalanche-network-runner control create-blockchains '[{"vm_name":"'$VM_NAME'","genesis":"'$GENESIS_PATH'", "subnet_spec": "{"participants": ["node1", "node2", "testNode"]}"]' --plugin-dir $PLUGIN_DIR
 ```
 
 Chain config can also be defined on a per node basis. For that, a per node chain config file is needed, which is a JSON that specifies the chain config per node. For example, given the following as the contents of the file with path `$PER_NODE_CHAIN_CONFIG`:
@@ -365,7 +403,7 @@ metal-network-runner control remove-node \
 --request-timeout=3m \
 --log-level debug \
 --endpoint="0.0.0.0:8080" \
---node-name node5
+node5
 ```
 
 To restart a node (in this case, the one named `node1`):
@@ -383,8 +421,8 @@ metal-network-runner control restart-node \
 --request-timeout=3m \
 --log-level debug \
 --endpoint="0.0.0.0:8080" \
---node-name node1 \
---metalgo-path ${METALGO_EXEC_PATH}
+--metalgo-path ${METALGO_EXEC_PATH} \
+node1 
 ```
 
 To add a node (in this case, a new node named `node99`):
@@ -402,8 +440,40 @@ metal-network-runner control add-node \
 --request-timeout=3m \
 --log-level debug \
 --endpoint="0.0.0.0:8080" \
---node-name node99 \
---metalgo-path ${METALGO_EXEC_PATH}
+--metalgo-path ${METALGO_EXEC_PATH} \
+node99 
+```
+
+To pause a node (in this case, node named `node99`):
+```bash
+# e.g., ${HOME}/go/src/github.com/ava-labs/avalanchego/build/avalanchego
+METALGO_EXEC_PATH="metalgo"
+
+
+curl -X POST -k http://localhost:8081/v1/control/pausenode -d '{"name":"node99","logLevel":"INFO"}'
+
+# or
+avalanche-network-runner control pause-node \
+--request-timeout=3m \
+--log-level debug \
+--endpoint="0.0.0.0:8080" \
+node99 
+```
+
+To resume a paused node (in this case, node named `node99`):
+```bash
+# e.g., ${HOME}/go/src/github.com/ava-labs/avalanchego/build/avalanchego
+AVALANCHEGO_EXEC_PATH="avalanchego"
+
+
+curl -X POST -k http://localhost:8081/v1/control/resumenode -d '{"name":"node99","logLevel":"INFO"}'
+
+# or
+avalanche-network-runner control resume-node \
+--request-timeout=3m \
+--log-level debug \
+--endpoint="0.0.0.0:8080" \
+node99 
 ```
 
 You can also provide additional flags that specify the node's config:

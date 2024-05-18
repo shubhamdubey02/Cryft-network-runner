@@ -17,6 +17,7 @@ import (
 	"github.com/MetalBlockchain/metalgo/network/peer"
 	"github.com/MetalBlockchain/metalgo/staking"
 	"github.com/MetalBlockchain/metalgo/utils/constants"
+	"github.com/MetalBlockchain/metalgo/utils/crypto/bls"
 	"github.com/MetalBlockchain/metalgo/utils/ips"
 	"github.com/MetalBlockchain/metalgo/utils/logging"
 	"github.com/MetalBlockchain/metalgo/utils/wrappers"
@@ -29,7 +30,7 @@ const bitmaskCodec = uint32(1 << 31)
 
 func upgradeConn(myTLSCert *tls.Certificate, conn net.Conn) (ids.NodeID, net.Conn, error) {
 	tlsConfig := peer.TLSConfig(*myTLSCert, nil)
-	upgrader := peer.NewTLSServerUpgrader(tlsConfig)
+	upgrader := peer.NewTLSServerUpgrader(tlsConfig, prometheus.NewCounter(prometheus.CounterOpts{}))
 	// this will block until the ssh handshake is done
 	peerID, tlsConn, _, err := upgrader.Upgrade(conn)
 	return peerID, tlsConn, err
@@ -77,19 +78,29 @@ func verifyProtocol(
 		Timestamp: now,
 	}
 	signer := myTLSCert.PrivateKey.(crypto.Signer)
-	signedIP, err := unsignedIP.Sign(signer)
+	blsKey, err := bls.NewSecretKey()
+	signedIP, err := unsignedIP.Sign(signer, blsKey)
 	if err != nil {
 		errCh <- err
 		return
 	}
-	verMsg, err := mc.Version(
+	knownPeersFilter, knownPeersSalt := peer.TestNetwork.KnownPeers()
+	verMsg, err := mc.Handshake(
 		constants.MainnetID,
 		now,
 		myIP,
 		version.CurrentApp.String(),
+		uint32(1),
+		uint32(11),
+		uint32(3),
 		now,
-		signedIP.Signature,
+		signedIP.TLSSignature,
+		signedIP.BLSSignatureBytes,
 		[]ids.ID{},
+		[]uint32{},
+		[]uint32{},
+		knownPeersFilter,
+		knownPeersSalt,
 	)
 	if err != nil {
 		errCh <- err
@@ -97,7 +108,7 @@ func verifyProtocol(
 	}
 
 	// create the PeerList message
-	plMsg, err := mc.PeerList([]ips.ClaimedIPPort{}, true)
+	plMsg, err := mc.PeerList([]*ips.ClaimedIPPort{}, true)
 	if err != nil {
 		errCh <- err
 		return
@@ -208,7 +219,7 @@ func TestAttachPeer(t *testing.T) {
 
 	// Expect the peer to send these messages in this order.
 	expectedMessages := []message.Op{
-		message.VersionOp,
+		message.HandshakeOp,
 		message.PeerListOp,
 		message.ChitsOp,
 	}
@@ -228,7 +239,7 @@ func TestAttachPeer(t *testing.T) {
 	requestID := uint32(42)
 	chainID := constants.PlatformChainID
 	// create the Chits message
-	msg, err := mc.Chits(chainID, requestID, ids.GenerateTestID(), ids.GenerateTestID())
+	msg, err := mc.Chits(chainID, requestID, ids.GenerateTestID(), ids.GenerateTestID(), ids.GenerateTestID())
 	require.NoError(err)
 	// send chits to [node]
 	ok := p.Send(context.Background(), msg)

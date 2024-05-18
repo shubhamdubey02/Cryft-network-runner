@@ -20,6 +20,7 @@ import (
 	"github.com/MetalBlockchain/metalgo/snow/validators"
 	"github.com/MetalBlockchain/metalgo/staking"
 	"github.com/MetalBlockchain/metalgo/utils/constants"
+	"github.com/MetalBlockchain/metalgo/utils/crypto/bls"
 	"github.com/MetalBlockchain/metalgo/utils/ips"
 	"github.com/MetalBlockchain/metalgo/utils/logging"
 	"github.com/MetalBlockchain/metalgo/utils/math/meter"
@@ -92,7 +93,7 @@ func (node *localNode) AttachPeer(ctx context.Context, router router.InboundHand
 		return nil, err
 	}
 	tlsConfg := peer.TLSConfig(*tlsCert, nil)
-	clientUpgrader := peer.NewTLSClientUpgrader(tlsConfg)
+	clientUpgrader := peer.NewTLSClientUpgrader(tlsConfg, prometheus.NewCounter(prometheus.CounterOpts{}))
 	conn, err := node.getConnFunc(ctx, node)
 	if err != nil {
 		return nil, err
@@ -127,6 +128,10 @@ func (node *localNode) AttachPeer(ctx context.Context, router router.InboundHand
 	}
 	signerIP := ips.NewDynamicIPPort(net.IPv6zero, 0)
 	tls := tlsCert.PrivateKey.(crypto.Signer)
+	blsKey, err := bls.NewSecretKey()
+	if err != nil {
+		return nil, err
+	}
 	config := &peer.Config{
 		Metrics:              metrics,
 		MessageCreator:       mc,
@@ -136,15 +141,15 @@ func (node *localNode) AttachPeer(ctx context.Context, router router.InboundHand
 		Router:               router,
 		VersionCompatibility: version.GetCompatibility(node.networkID),
 		MySubnets:            set.Set[ids.ID]{},
-		Beacons:              validators.NewSet(),
+		Beacons:              validators.NewManager(),
 		NetworkID:            node.networkID,
 		PingFrequency:        constants.DefaultPingFrequency,
 		PongTimeout:          constants.DefaultPingPongTimeout,
 		MaxClockDifference:   time.Minute,
 		ResourceTracker:      resourceTracker,
-		IPSigner:             peer.NewIPSigner(signerIP, tls),
+		IPSigner:             peer.NewIPSigner(signerIP, tls, blsKey),
 	}
-	_, conn, cert, err := clientUpgrader.Upgrade(conn)
+	peerID, conn, cert, err := clientUpgrader.Upgrade(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +158,7 @@ func (node *localNode) AttachPeer(ctx context.Context, router router.InboundHand
 		config,
 		conn,
 		cert,
-		ids.NodeIDFromCert(tlsCert.Leaf),
+		peerID,
 		peer.NewBlockingMessageQueue(
 			config.Metrics,
 			logging.NoLog{},

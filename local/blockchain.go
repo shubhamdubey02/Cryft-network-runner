@@ -20,6 +20,8 @@ import (
 	"github.com/MetalBlockchain/metalgo/vms/components/avax"
 	"github.com/MetalBlockchain/metalgo/vms/components/verify"
 	"github.com/MetalBlockchain/metalgo/wallet/chain/x"
+	xbuilder "github.com/MetalBlockchain/metalgo/wallet/chain/x/builder"
+	xsigner "github.com/MetalBlockchain/metalgo/wallet/chain/x/signer"
 
 	"github.com/MetalBlockchain/metal-network-runner/network"
 	"github.com/MetalBlockchain/metal-network-runner/network/node"
@@ -37,6 +39,8 @@ import (
 	"github.com/MetalBlockchain/metalgo/vms/platformvm/txs"
 	"github.com/MetalBlockchain/metalgo/vms/secp256k1fx"
 	"github.com/MetalBlockchain/metalgo/wallet/chain/p"
+	pbuilder "github.com/MetalBlockchain/metalgo/wallet/chain/p/builder"
+	psigner "github.com/MetalBlockchain/metalgo/wallet/chain/p/signer"
 	"github.com/MetalBlockchain/metalgo/wallet/subnet/primary"
 	"github.com/MetalBlockchain/metalgo/wallet/subnet/primary/common"
 	"go.uber.org/zap"
@@ -638,8 +642,10 @@ type wallet struct {
 	addr     ids.ShortID
 	pWallet  p.Wallet
 	pBackend p.Backend
-	pBuilder p.Builder
-	pSigner  p.Signer
+	pBuilder pbuilder.Builder
+	pSigner  psigner.Signer
+	pContext *pbuilder.Context
+	xContext *xbuilder.Context
 	xWallet  x.Wallet
 }
 
@@ -649,7 +655,7 @@ func newWallet(
 	preloadTXs []ids.ID,
 ) (*wallet, error) {
 	kc := secp256k1fx.NewKeychain(genesis.EWOQKey)
-	pCTX, xCTX, utxos, err := primary.FetchState(ctx, uri, kc.Addresses())
+	state, err := primary.FetchState(ctx, uri, kc.Addresses())
 	if err != nil {
 		return nil, err
 	}
@@ -666,19 +672,20 @@ func newWallet(
 		}
 		pTXs[id] = tx
 	}
-	pUTXOs := primary.NewChainUTXOs(constants.PlatformChainID, utxos)
-	xChainID := xCTX.BlockchainID()
-	xUTXOs := primary.NewChainUTXOs(xChainID, utxos)
+	pUTXOs := common.NewChainUTXOs(constants.PlatformChainID, state.UTXOs)
+	xChainID := state.XCTX.BlockchainID
+	xUTXOs := common.NewChainUTXOs(xChainID, state.UTXOs)
 	var w wallet
+	w.xContext, w.pContext = state.XCTX, state.PCTX
 	w.addr = genesis.EWOQKey.PublicKey().Address()
-	w.pBackend = p.NewBackend(pCTX, pUTXOs, pTXs)
-	w.pBuilder = p.NewBuilder(kc.Addresses(), w.pBackend)
-	w.pSigner = p.NewSigner(kc, w.pBackend)
+	w.pBackend = p.NewBackend(state.PCTX, pUTXOs, pTXs)
+	w.pBuilder = pbuilder.New(kc.Addresses(), state.PCTX, w.pBackend)
+	w.pSigner = psigner.New(kc, w.pBackend)
 	w.pWallet = p.NewWallet(w.pBuilder, w.pSigner, pClient, w.pBackend)
 
-	xBackend := x.NewBackend(xCTX, xUTXOs)
-	xBuilder := x.NewBuilder(kc.Addresses(), xBackend)
-	xSigner := x.NewSigner(kc, xBackend)
+	xBackend := x.NewBackend(state.XCTX, xUTXOs)
+	xBuilder := xbuilder.New(kc.Addresses(), state.XCTX, xBackend)
+	xSigner := xsigner.New(kc, xBackend)
 	xClient := avm.NewClient(uri, "X")
 	w.xWallet = x.NewWallet(xBuilder, xSigner, xClient, xBackend)
 	return &w, nil
@@ -740,7 +747,7 @@ func (ln *localNetwork) addPrimaryValidators(
 				Subnet: ids.Empty,
 			},
 			proofOfPossession,
-			w.pWallet.AVAXAssetID(),
+			w.pContext.AVAXAssetID,
 			&secp256k1fx.OutputOwners{
 				Threshold: 1,
 				Addrs:     []ids.ShortID{w.addr},
@@ -816,13 +823,11 @@ func exportXChainToPChain(ctx context.Context, w *wallet, owner *secp256k1fx.Out
 }
 
 func importPChainFromXChain(ctx context.Context, w *wallet, owner *secp256k1fx.OutputOwners) error {
-	xWallet := w.xWallet
 	pWallet := w.pWallet
 	cctx, cancel := createDefaultCtx(ctx)
 	defer cancel()
-	xChainID := xWallet.BlockchainID()
 	_, err := pWallet.IssueImportTx(
-		xChainID,
+		w.xContext.BlockchainID,
 		owner,
 		common.WithContext(cctx),
 		defaultPoll,
@@ -1353,7 +1358,7 @@ func createBlockchainTxs(
 		if err != nil {
 			return nil, fmt.Errorf("failure generating create blockchain tx: %w", err)
 		}
-		tx, err := w.pSigner.SignUnsigned(cctx, utx)
+		tx, err := psigner.SignUnsigned(cctx, w.pSigner, utx)
 		if err != nil {
 			return nil, fmt.Errorf("failure signing create blockchain tx: %w", err)
 		}

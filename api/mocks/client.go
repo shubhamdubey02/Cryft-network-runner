@@ -16,8 +16,6 @@ import (
 
 	info "github.com/MetalBlockchain/metalgo/api/info"
 
-	ipcs "github.com/MetalBlockchain/metalgo/api/ipcs"
-
 	keystore "github.com/MetalBlockchain/metalgo/api/keystore"
 
 	mock "github.com/stretchr/testify/mock"
@@ -120,22 +118,6 @@ func (_m *Client) InfoAPI() info.Client {
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(info.Client)
-		}
-	}
-
-	return r0
-}
-
-// IpcsAPI provides a mock function with given fields:
-func (_m *Client) IpcsAPI() ipcs.Client {
-	ret := _m.Called()
-
-	var r0 ipcs.Client
-	if rf, ok := ret.Get(0).(func() ipcs.Client); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(ipcs.Client)
 		}
 	}
 

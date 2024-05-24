@@ -135,6 +135,7 @@ const (
 	ControlService_LoadSnapshot_FullMethodName            = "/rpcpb.ControlService/LoadSnapshot"
 	ControlService_RemoveSnapshot_FullMethodName          = "/rpcpb.ControlService/RemoveSnapshot"
 	ControlService_GetSnapshotNames_FullMethodName        = "/rpcpb.ControlService/GetSnapshotNames"
+	ControlService_GetEndpoints_FullMethodName            = "/rpcpb.ControlService/GetEndpoints"
 )
 
 // ControlServiceClient is the client API for ControlService service.
@@ -167,6 +168,7 @@ type ControlServiceClient interface {
 	LoadSnapshot(ctx context.Context, in *LoadSnapshotRequest, opts ...grpc.CallOption) (*LoadSnapshotResponse, error)
 	RemoveSnapshot(ctx context.Context, in *RemoveSnapshotRequest, opts ...grpc.CallOption) (*RemoveSnapshotResponse, error)
 	GetSnapshotNames(ctx context.Context, in *GetSnapshotNamesRequest, opts ...grpc.CallOption) (*GetSnapshotNamesResponse, error)
+	GetEndpoints(ctx context.Context, in *GetEndpointsRequest, opts ...grpc.CallOption) (*GetEndpointsResponse, error)
 }
 
 type controlServiceClient struct {
@@ -434,6 +436,15 @@ func (c *controlServiceClient) GetSnapshotNames(ctx context.Context, in *GetSnap
 	return out, nil
 }
 
+func (c *controlServiceClient) GetEndpoints(ctx context.Context, in *GetEndpointsRequest, opts ...grpc.CallOption) (*GetEndpointsResponse, error) {
+	out := new(GetEndpointsResponse)
+	err := c.cc.Invoke(ctx, ControlService_GetEndpoints_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ControlServiceServer is the server API for ControlService service.
 // All implementations must embed UnimplementedControlServiceServer
 // for forward compatibility
@@ -464,6 +475,7 @@ type ControlServiceServer interface {
 	LoadSnapshot(context.Context, *LoadSnapshotRequest) (*LoadSnapshotResponse, error)
 	RemoveSnapshot(context.Context, *RemoveSnapshotRequest) (*RemoveSnapshotResponse, error)
 	GetSnapshotNames(context.Context, *GetSnapshotNamesRequest) (*GetSnapshotNamesResponse, error)
+	GetEndpoints(context.Context, *GetEndpointsRequest) (*GetEndpointsResponse, error)
 	mustEmbedUnimplementedControlServiceServer()
 }
 
@@ -548,6 +560,9 @@ func (UnimplementedControlServiceServer) RemoveSnapshot(context.Context, *Remove
 }
 func (UnimplementedControlServiceServer) GetSnapshotNames(context.Context, *GetSnapshotNamesRequest) (*GetSnapshotNamesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSnapshotNames not implemented")
+}
+func (UnimplementedControlServiceServer) GetEndpoints(context.Context, *GetEndpointsRequest) (*GetEndpointsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEndpoints not implemented")
 }
 func (UnimplementedControlServiceServer) mustEmbedUnimplementedControlServiceServer() {}
 
@@ -1033,6 +1048,24 @@ func _ControlService_GetSnapshotNames_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ControlService_GetEndpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEndpointsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).GetEndpoints(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ControlService_GetEndpoints_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).GetEndpoints(ctx, req.(*GetEndpointsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ControlService_ServiceDesc is the grpc.ServiceDesc for ControlService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1139,6 +1172,10 @@ var ControlService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSnapshotNames",
 			Handler:    _ControlService_GetSnapshotNames_Handler,
+		},
+		{
+			MethodName: "GetEndpoints",
+			Handler:    _ControlService_GetEndpoints_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -231,7 +231,7 @@ func (ln *localNetwork) loadSnapshot(
 	_, err := os.Stat(snapshotDir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return ErrSnapshotNotFound
+			return fmt.Errorf("failed accessing snapshot: %s", snapshotDir)
 		} else {
 			return fmt.Errorf("failure accessing snapshot %q: %w", snapshotName, err)
 		}

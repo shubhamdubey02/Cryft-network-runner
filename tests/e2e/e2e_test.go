@@ -98,7 +98,7 @@ var (
 		UptimeRequirement:        0.8 * 1_000_000,
 	}
 
-	testValidatorConfig = rpcpb.PermissionlessValidatorSpec{
+	testValidatorConfig = rpcpb.ValidatorSpec{
 		StakedTokenAmount: 2000,
 		StartTime:         time.Now().Add(1 * time.Hour).UTC().Format(server.TimeParseLayout),
 		StakeDuration:     336,
@@ -636,7 +636,7 @@ var _ = ginkgo.Describe("[Start/Remove/Restart/Add/Stop]", func() {
 			gomega.Ω(err).Should(gomega.BeNil())
 			requestID := uint32(42)
 			chainID := avago_constants.PlatformChainID
-			msg, err := mc.Chits(chainID, requestID, ids.GenerateTestID(), ids.GenerateTestID())
+			msg, err := mc.Chits(chainID, requestID, ids.GenerateTestID(), ids.GenerateTestID(), ids.GenerateTestID())
 			gomega.Ω(err).Should(gomega.BeNil())
 
 			ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
@@ -1012,7 +1012,7 @@ var _ = ginkgo.Describe("[Start/Remove/Restart/Add/Stop]", func() {
 			testValidatorConfig.SubnetId = createdSubnetID
 			testValidatorConfig.AssetId = elasticAssetID
 			testValidatorConfig.NodeName = "permissionlessNode"
-			_, err := cli.AddPermissionlessValidator(ctx, []*rpcpb.PermissionlessValidatorSpec{&testValidatorConfig})
+			_, err := cli.AddPermissionlessValidator(ctx, []*rpcpb.ValidatorSpec{&testValidatorConfig})
 			gomega.Ω(err).Should(gomega.BeNil())
 		})
 	})

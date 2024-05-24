@@ -471,7 +471,7 @@ func addPermissionlessValidatorFunc(_ *cobra.Command, args []string) error {
 
 	validatorSpecStr := args[0]
 
-	validatorSpec := []*rpcpb.PermissionlessValidatorSpec{}
+	validatorSpec := []*rpcpb.ValidatorSpec{}
 	if err := json.Unmarshal([]byte(validatorSpecStr), &validatorSpec); err != nil {
 		return err
 	}

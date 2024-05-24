@@ -524,8 +524,8 @@ func (s *server) CreateBlockchains(
 
 func (s *server) AddPermissionlessValidator(
 	_ context.Context,
-	req *rpcpb.AddPermissionlessValidatorRequest,
-) (*rpcpb.AddPermissionlessValidatorResponse, error) {
+	req *rpcpb.AddValidatorRequest,
+) (*rpcpb.AddValidatorResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -580,7 +580,7 @@ func (s *server) AddPermissionlessValidator(
 	if err != nil {
 		return nil, err
 	}
-	return &rpcpb.AddPermissionlessValidatorResponse{ClusterInfo: clusterInfo}, nil
+	return &rpcpb.AddValidatorResponse{ClusterInfo: clusterInfo}, nil
 }
 
 func (s *server) RemoveSubnetValidator(
@@ -1385,7 +1385,7 @@ func getNetworkElasticSubnetSpec(
 }
 
 func getPermissionlessValidatorSpec(
-	spec *rpcpb.PermissionlessValidatorSpec,
+	spec *rpcpb.ValidatorSpec,
 ) (network.PermissionlessValidatorSpec, error) {
 	var startTime time.Time
 	var err error

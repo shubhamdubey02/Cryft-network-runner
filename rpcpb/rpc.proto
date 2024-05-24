@@ -50,9 +50,23 @@ service ControlService {
     };
   }
 
-  rpc AddPermissionlessValidator(AddPermissionlessValidatorRequest) returns (AddPermissionlessValidatorResponse) {
+  rpc AddDelegator(AddDelegatorRequest) returns (AddDelegatorResponse) {
     option (google.api.http) = {
-      post: "/v1/control/addpermissionlessvalidator"
+      post: "/v1/control/adddelegator"
+      body: "*"
+    };
+  }
+
+  rpc AddValidator(AddValidatorRequest) returns (AddValidatorResponse) {
+    option (google.api.http) = {
+      post: "/v1/control/addvalidator"
+      body: "*"
+    };
+  }
+
+  rpc AddSubnetValidators(AddSubnetValidatorsRequest) returns (AddSubnetValidatorsResponse) {
+    option (google.api.http) = {
+      post: "/v1/control/addsubnetvalidators"
       body: "*"
     };
   }
@@ -210,6 +224,7 @@ message ClusterInfo {
   // The map of blockchain IDs in "ids.ID" format to its blockchain information.
   map<string, CustomChainInfo> custom_chains = 8;
   map<string, SubnetInfo> subnets          = 9;
+  uint32 network_id                         = 10;
 }
 
 message SubnetInfo {
@@ -314,6 +329,7 @@ message StartRequest {
   // If specified, will create a file "subnetid.json" under subnets config dir with
   // the contents provided here.
   map<string, string> subnet_configs = 13;
+  uint32 network_id = 14;
 }
 
 message RPCVersionRequest {}
@@ -362,7 +378,7 @@ message TransformElasticSubnetsResponse {
   repeated string asset_ids = 3;
 }
 
-message PermissionlessValidatorSpec {
+message ValidatorSpec {
   string subnet_id = 1;
   string node_name = 2;
   uint64 staked_token_amount = 3;
@@ -371,11 +387,19 @@ message PermissionlessValidatorSpec {
   uint64 stake_duration = 6;
 }
 
-message AddPermissionlessValidatorRequest {
-  repeated PermissionlessValidatorSpec validator_spec = 1;
+message AddValidatorRequest {
+  repeated ValidatorSpec validator_spec = 1;
 }
 
-message AddPermissionlessValidatorResponse {
+message AddValidatorResponse {
+  ClusterInfo cluster_info = 1;
+}
+
+message AddDelegatorRequest {
+  repeated ValidatorSpec validator_spec = 1;
+}
+
+message AddDelegatorResponse {
   ClusterInfo cluster_info = 1;
 }
 
@@ -391,6 +415,20 @@ message RemoveSubnetValidatorRequest {
 message RemoveSubnetValidatorResponse {
   ClusterInfo cluster_info = 1;
 }
+
+message SubnetValidatorsSpec {
+  string subnet_id = 1;
+  repeated string node_names = 2;
+}
+
+message AddSubnetValidatorsRequest {
+  repeated SubnetValidatorsSpec validators_spec = 1;
+}
+
+message AddSubnetValidatorsResponse {
+  ClusterInfo cluster_info = 1;
+}
+
 
 message BlockchainSpec {
   string vm_name = 1;

@@ -73,8 +73,6 @@ var (
 	subnetConfigSubDir = "subnetConfigs"
 
 	snapshotsRelPath = filepath.Join(".metal-network-runner", "snapshots")
-
-	ErrSnapshotNotFound = errors.New("snapshot not found")
 )
 
 // network keeps information uses for network management, and accessing all the nodes

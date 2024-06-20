@@ -1326,6 +1326,19 @@ func (s *server) GetSnapshotNames(context.Context, *rpcpb.GetSnapshotNamesReques
 	return &rpcpb.GetSnapshotNamesResponse{SnapshotNames: snapshotNames}, nil
 }
 
+func (s *server) ListChains(context.Context, *rpcpb.ListChainsRequest) (*rpcpb.ListChainsResponse, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.network == nil {
+		return nil, ErrNotBootstrapped
+	}
+
+	chains := maps.Values(s.clusterInfo.CustomChains)
+
+	return &rpcpb.ListChainsResponse{Chains: chains}, nil
+}
+
 func isClientCanceled(ctxErr error, err error) bool {
 	if ctxErr != nil {
 		return true

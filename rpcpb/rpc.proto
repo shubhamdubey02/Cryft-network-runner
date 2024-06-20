@@ -204,6 +204,13 @@ service ControlService {
     };
   }
 
+  rpc ListBlockchains(ListChainsRequest) returns (ListChainsResponse) {
+    option (google.api.http) = {
+      post: "/v1/control/listchains"
+      body: "*"
+    };
+  }
+
   rpc GetEndpoints(GetEndpointsRequest) returns (GetEndpointsResponse) {
     option (google.api.http) = {
       post: "/v1/control/endpoints"
@@ -666,6 +673,12 @@ message GetSnapshotNamesResponse {
   repeated string snapshot_names = 1;
 }
 
+message ListChainsRequest {
+}
+
+message ListChainsResponse {
+  repeated CustomChainInfo chains = 1;
+}
 
 message GetEndpointsRequest {
 }

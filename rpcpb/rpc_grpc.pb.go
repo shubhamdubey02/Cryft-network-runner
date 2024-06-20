@@ -135,7 +135,7 @@ const (
 	ControlService_LoadSnapshot_FullMethodName            = "/rpcpb.ControlService/LoadSnapshot"
 	ControlService_RemoveSnapshot_FullMethodName          = "/rpcpb.ControlService/RemoveSnapshot"
 	ControlService_GetSnapshotNames_FullMethodName        = "/rpcpb.ControlService/GetSnapshotNames"
-	ControlService_ListBlockchains_FullMethodName         = "/rpcpb.ControlService/ListBlockchains"
+	ControlService_ListChains_FullMethodName              = "/rpcpb.ControlService/ListChains"
 	ControlService_GetEndpoints_FullMethodName            = "/rpcpb.ControlService/GetEndpoints"
 )
 
@@ -169,7 +169,7 @@ type ControlServiceClient interface {
 	LoadSnapshot(ctx context.Context, in *LoadSnapshotRequest, opts ...grpc.CallOption) (*LoadSnapshotResponse, error)
 	RemoveSnapshot(ctx context.Context, in *RemoveSnapshotRequest, opts ...grpc.CallOption) (*RemoveSnapshotResponse, error)
 	GetSnapshotNames(ctx context.Context, in *GetSnapshotNamesRequest, opts ...grpc.CallOption) (*GetSnapshotNamesResponse, error)
-	ListBlockchains(ctx context.Context, in *ListChainsRequest, opts ...grpc.CallOption) (*ListChainsResponse, error)
+	ListChains(ctx context.Context, in *ListChainsRequest, opts ...grpc.CallOption) (*ListChainsResponse, error)
 	GetEndpoints(ctx context.Context, in *GetEndpointsRequest, opts ...grpc.CallOption) (*GetEndpointsResponse, error)
 }
 
@@ -438,9 +438,9 @@ func (c *controlServiceClient) GetSnapshotNames(ctx context.Context, in *GetSnap
 	return out, nil
 }
 
-func (c *controlServiceClient) ListBlockchains(ctx context.Context, in *ListChainsRequest, opts ...grpc.CallOption) (*ListChainsResponse, error) {
+func (c *controlServiceClient) ListChains(ctx context.Context, in *ListChainsRequest, opts ...grpc.CallOption) (*ListChainsResponse, error) {
 	out := new(ListChainsResponse)
-	err := c.cc.Invoke(ctx, ControlService_ListBlockchains_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, ControlService_ListChains_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +486,7 @@ type ControlServiceServer interface {
 	LoadSnapshot(context.Context, *LoadSnapshotRequest) (*LoadSnapshotResponse, error)
 	RemoveSnapshot(context.Context, *RemoveSnapshotRequest) (*RemoveSnapshotResponse, error)
 	GetSnapshotNames(context.Context, *GetSnapshotNamesRequest) (*GetSnapshotNamesResponse, error)
-	ListBlockchains(context.Context, *ListChainsRequest) (*ListChainsResponse, error)
+	ListChains(context.Context, *ListChainsRequest) (*ListChainsResponse, error)
 	GetEndpoints(context.Context, *GetEndpointsRequest) (*GetEndpointsResponse, error)
 	mustEmbedUnimplementedControlServiceServer()
 }
@@ -573,8 +573,8 @@ func (UnimplementedControlServiceServer) RemoveSnapshot(context.Context, *Remove
 func (UnimplementedControlServiceServer) GetSnapshotNames(context.Context, *GetSnapshotNamesRequest) (*GetSnapshotNamesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSnapshotNames not implemented")
 }
-func (UnimplementedControlServiceServer) ListBlockchains(context.Context, *ListChainsRequest) (*ListChainsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListBlockchains not implemented")
+func (UnimplementedControlServiceServer) ListChains(context.Context, *ListChainsRequest) (*ListChainsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListChains not implemented")
 }
 func (UnimplementedControlServiceServer) GetEndpoints(context.Context, *GetEndpointsRequest) (*GetEndpointsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEndpoints not implemented")
@@ -1063,20 +1063,20 @@ func _ControlService_GetSnapshotNames_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ControlService_ListBlockchains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ControlService_ListChains_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListChainsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ControlServiceServer).ListBlockchains(ctx, in)
+		return srv.(ControlServiceServer).ListChains(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: ControlService_ListBlockchains_FullMethodName,
+		FullMethod: ControlService_ListChains_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControlServiceServer).ListBlockchains(ctx, req.(*ListChainsRequest))
+		return srv.(ControlServiceServer).ListChains(ctx, req.(*ListChainsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1207,8 +1207,8 @@ var ControlService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ControlService_GetSnapshotNames_Handler,
 		},
 		{
-			MethodName: "ListBlockchains",
-			Handler:    _ControlService_ListBlockchains_Handler,
+			MethodName: "ListChains",
+			Handler:    _ControlService_ListChains_Handler,
 		},
 		{
 			MethodName: "GetEndpoints",

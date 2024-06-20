@@ -204,7 +204,7 @@ service ControlService {
     };
   }
 
-  rpc ListBlockchains(ListChainsRequest) returns (ListChainsResponse) {
+  rpc ListChains(ListChainsRequest) returns (ListChainsResponse) {
     option (google.api.http) = {
       post: "/v1/control/listchains"
       body: "*"

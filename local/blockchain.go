@@ -159,9 +159,19 @@ func (ln *localNetwork) RegisterBlockchainAliases(
 	return nil
 }
 
+func (ln *localNetwork) AddSubnetValidators(
+	ctx context.Context,
+	specs []network.SubnetValidatorSpec,
+) error {
+	ln.lock.Lock()
+	defer ln.lock.Unlock()
+
+	return ln.addSubnetValidators(ctx, specs)
+}
+
 func (ln *localNetwork) RemoveSubnetValidators(
 	ctx context.Context,
-	removeSubnetSpecs []network.RemoveSubnetValidatorSpec,
+	removeSubnetSpecs []network.SubnetValidatorSpec,
 ) error {
 	ln.lock.Lock()
 	defer ln.lock.Unlock()
@@ -305,7 +315,7 @@ func (ln *localNetwork) installCustomChains(
 		return nil, err
 	}
 
-	if err = ln.addSubnetValidators(ctx, platformCli, w, subnetIDs, subnetSpecs); err != nil {
+	if err = ln.sendAddSubnetValidatorTxs(ctx, platformCli, w, subnetIDs, subnetSpecs); err != nil {
 		return nil, err
 	}
 
@@ -367,6 +377,86 @@ func (ln *localNetwork) installCustomChains(
 	}
 
 	return chainInfos, nil
+}
+
+func (ln *localNetwork) addSubnetValidators(
+	ctx context.Context,
+	subnetValidatorsSpecs []network.SubnetValidatorSpec,
+) error {
+	ln.log.Info(logging.Blue.Wrap(logging.Bold.Wrap("add subnet validators")))
+
+	clientURI, err := ln.getClientURI()
+	if err != nil {
+		return err
+	}
+	platformCli := platformvm.NewClient(clientURI)
+
+	// wallet needs txs for all previously created subnets
+	subnetIDs := make([]ids.ID, len(subnetValidatorsSpecs))
+	for i, spec := range subnetValidatorsSpecs {
+		subnetID, err := ids.FromString(spec.SubnetID)
+		if err != nil {
+			return err
+		}
+		subnetIDs[i] = subnetID
+	}
+	wallet, err := newWallet(ctx, clientURI, subnetIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, spec := range subnetValidatorsSpecs {
+		if len(spec.NodeNames) == 0 {
+			return fmt.Errorf("no validators provided for subnet %s", spec.SubnetID)
+		}
+	}
+
+	// create new nodes
+	for _, spec := range subnetValidatorsSpecs {
+		for _, nodeName := range spec.NodeNames {
+			_, ok := ln.nodes[nodeName]
+			if !ok {
+				ln.log.Info(logging.Green.Wrap(fmt.Sprintf("adding new participant %s", nodeName)))
+				if _, err := ln.addNode(node.Config{
+					Name: nodeName,
+				}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	if err := ln.healthy(ctx); err != nil {
+		return err
+	}
+
+	// just ensure all nodes are primary validators (so can be subnet validators)
+	if err := ln.addPrimaryValidators(ctx, platformCli, wallet); err != nil {
+		return err
+	}
+
+	// wait for nodes to be primary validators before trying to add them as subnet ones
+	if err = ln.waitPrimaryValidators(ctx, platformCli); err != nil {
+		return err
+	}
+
+	subnetSpecs := []network.SubnetSpec{}
+	for _, spec := range subnetValidatorsSpecs {
+		subnetSpecs = append(subnetSpecs, network.SubnetSpec{Participants: spec.NodeNames})
+	}
+
+	if err = ln.sendAddSubnetValidatorTxs(ctx, platformCli, wallet, subnetIDs, subnetSpecs); err != nil {
+		return err
+	}
+
+	if err := ln.restartNodes(ctx, subnetIDs, subnetSpecs, nil, nil, nil); err != nil {
+		return err
+	}
+
+	if err = ln.waitSubnetValidators(ctx, platformCli, subnetIDs, subnetSpecs); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ln *localNetwork) installSubnets(
@@ -431,7 +521,7 @@ func (ln *localNetwork) installSubnets(
 		return nil, err
 	}
 
-	if err = ln.addSubnetValidators(ctx, platformCli, w, subnetIDs, subnetSpecs); err != nil {
+	if err = ln.sendAddSubnetValidatorTxs(ctx, platformCli, w, subnetIDs, subnetSpecs); err != nil {
 		return nil, err
 	}
 
@@ -541,7 +631,7 @@ func (ln *localNetwork) restartNodes(
 	subnetIDs []ids.ID,
 	subnetSpecs []network.SubnetSpec,
 	validatorSpecs []network.PermissionlessValidatorSpec,
-	removeValidatorSpecs []network.RemoveSubnetValidatorSpec,
+	removeValidatorSpecs []network.SubnetValidatorSpec,
 	nodesToRestartForBlockchainConfigUpdate set.Set[string],
 ) (err error) {
 	if (subnetSpecs != nil && validatorSpecs != nil) || (subnetSpecs != nil && removeValidatorSpecs != nil) ||
@@ -837,7 +927,7 @@ func importPChainFromXChain(ctx context.Context, w *wallet, owner *secp256k1fx.O
 
 func (ln *localNetwork) removeSubnetValidators(
 	ctx context.Context,
-	removeSubnetSpecs []network.RemoveSubnetValidatorSpec,
+	removeSubnetSpecs []network.SubnetValidatorSpec,
 ) error {
 	ln.log.Info("removing subnet validator tx")
 	removeSubnetSpecIDs := make([]ids.ID, len(removeSubnetSpecs))
@@ -927,6 +1017,7 @@ func (ln *localNetwork) addPermissionlessValidators(
 		}
 		preloadTXs[i] = subnetID
 	}
+	ln.log.Info("here")
 	w, err := newWallet(ctx, clientURI, preloadTXs)
 	if err != nil {
 		return err
@@ -1010,7 +1101,7 @@ func (ln *localNetwork) addPermissionlessValidators(
 			&signer.Empty{},
 			assetID,
 			owner,
-			&secp256k1fx.OutputOwners{},
+			owner,
 			reward.PercentDenominator,
 			common.WithContext(cctx),
 			defaultPoll,
@@ -1140,20 +1231,18 @@ func createSubnets(
 	return subnetIDs, nil
 }
 
-// add the nodes in subnet participant as validators of the given subnets, in case they are not
-// the validation starts as soon as possible and its duration is as long as possible, that is,
-// it ends at the time the primary network validation ends for the node
-func (ln *localNetwork) addSubnetValidators(
+func (ln *localNetwork) sendAddSubnetValidatorTxs(
 	ctx context.Context,
-	platformCli platformvm.Client,
+	pCLI platformvm.Client,
 	w *wallet,
 	subnetIDs []ids.ID,
 	subnetSpecs []network.SubnetSpec,
 ) error {
-	ln.log.Info(logging.Green.Wrap("adding the nodes as subnet validators"))
+	ln.log.Info(logging.Green.Wrap("adding subnet validators"))
+
 	for i, subnetID := range subnetIDs {
 		cctx, cancel := createDefaultCtx(ctx)
-		vs, err := platformCli.GetCurrentValidators(cctx, constants.PrimaryNetworkID, nil)
+		vs, err := pCLI.GetCurrentValidators(cctx, constants.PrimaryNetworkID, nil)
 		cancel()
 		if err != nil {
 			return err
@@ -1163,7 +1252,7 @@ func (ln *localNetwork) addSubnetValidators(
 			primaryValidatorsEndtime[v.NodeID] = time.Unix(int64(v.EndTime), 0)
 		}
 		cctx, cancel = createDefaultCtx(ctx)
-		vs, err = platformCli.GetCurrentValidators(cctx, subnetID, nil)
+		vs, err = pCLI.GetCurrentValidators(cctx, subnetID, nil)
 		cancel()
 		if err != nil {
 			return err
@@ -1180,17 +1269,17 @@ func (ln *localNetwork) addSubnetValidators(
 			}
 			nodeID := node.GetNodeID()
 			if isValidator := subnetValidators.Contains(nodeID); isValidator {
+				ln.log.Info("already a validator", zap.String("nodeID", nodeID.String()))
 				continue
 			}
 			cctx, cancel := createDefaultCtx(ctx)
-			txID, err := w.pWallet.IssueAddSubnetValidatorTx(
+			tx, err := w.pWallet.IssueAddSubnetValidatorTx(
 				&txs.SubnetValidator{
 					Validator: txs.Validator{
 						NodeID: nodeID,
-						// reasonable delay in most/slow test environments
-						Start: uint64(time.Now().Add(validationStartOffset).Unix()),
-						End:   uint64(primaryValidatorsEndtime[nodeID].Unix()),
-						Wght:  subnetValidatorsWeight,
+						Start:  uint64(time.Now().Add(validationStartOffset).Unix()),
+						End:    uint64(primaryValidatorsEndtime[nodeID].Unix()),
+						Wght:   subnetValidatorsWeight,
 					},
 					Subnet: subnetID,
 				},
@@ -1199,13 +1288,13 @@ func (ln *localNetwork) addSubnetValidators(
 			)
 			cancel()
 			if err != nil {
-				return fmt.Errorf("P-Wallet Tx Error %s %w, node ID %s, subnetID %s", "IssueAddSubnetValidatorTx", err, nodeID.String(), subnetID.String())
+				return fmt.Errorf("failed to add subnet validator %s", err)
 			}
 			ln.log.Info("added node as a subnet validator to subnet",
-				zap.String("node-name", nodeName),
-				zap.String("node-ID", nodeID.String()),
-				zap.String("subnet-ID", subnetID.String()),
-				zap.String("tx-ID", txID.ID().String()),
+				zap.String("name", nodeName),
+				zap.String("nodeID", nodeID.String()),
+				zap.String("subnetID", subnetID.String()),
+				zap.String("tx", tx.ID().String()),
 			)
 		}
 	}
@@ -1326,7 +1415,6 @@ func createBlockchainTxs(
 	w *wallet,
 	log logging.Logger,
 ) ([]*txs.Tx, error) {
-	fmt.Println()
 	log.Info(logging.Green.Wrap("creating tx for each custom chain"))
 	blockchainTxs := make([]*txs.Tx, len(chainSpecs))
 	for i, chainSpec := range chainSpecs {
@@ -1381,7 +1469,6 @@ func (ln *localNetwork) setBlockchainConfigFiles(
 	subnetSpecs []network.SubnetSpec,
 	log logging.Logger,
 ) (set.Set[string], error) {
-	fmt.Println()
 	log.Info(logging.Green.Wrap("creating config files for each custom chain"))
 	nodesToRestart := set.Set[string]{}
 	for i, chainSpec := range chainSpecs {

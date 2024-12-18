@@ -48,8 +48,8 @@ github.com/DataDog/zstd v1.5.2/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwS
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/MetalBlockchain/coreth v0.13.2-rc.3 h1:/IDUI4+YsxAzRwFsMETLkDiVTv0aTHBDtF4Hy8DOUbM=
 github.com/MetalBlockchain/coreth v0.13.2-rc.3/go.mod h1:GT47JO3fy9OZEJRmB3fHyIymb2/QYIQ/zrfGMl2Zvqw=
-github.com/MetalBlockchain/metalgo v1.11.3-rc.1 h1:MC4sWXB10CIauRqUxlxl+lFGjsD84NEF2H/hbvDC3KQ=
-github.com/MetalBlockchain/metalgo v1.11.3-rc.1/go.mod h1:RY0EaxDYkNzuUKrxQhIMpNZwTZ7UPclFcnCtdKIhH+A=
+github.com/MetalBlockchain/metalgo v1.11.3-rc.0 h1:6e/8VJ/+EqATj61GTsoD/gH0FPeRAkQwq0pBA5bRRLo=
+github.com/MetalBlockchain/metalgo v1.11.3-rc.0/go.mod h1:4+uY2t4lBH1fBHSlBQfQJvSsOZEKZjVRreJrgNe8i3w=
 github.com/NYTimes/gziphandler v1.1.1 h1:ZUDjpQae29j0ryrS0u/B8HZfJBtBQHjqw2rQ2cqUQ3I=
 github.com/NYTimes/gziphandler v1.1.1/go.mod h1:n/CVRwUEOgIxrgPvAQhUUr9oeUtvrhMomdKFjzJNB0c=
 github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398/go.mod h1:a1uqRtAwp2Xwc6WNPJEufxJ7fx3npB4UV/JOLmbu5I0=
@@ -132,6 +132,10 @@ github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/crate-crypto/go-kzg-4844 v0.3.0 h1:UBlWE0CgyFqqzTI+IFyCzA7A3Zw4iip6uzRv5NIXG0A=
 github.com/crate-crypto/go-kzg-4844 v0.3.0/go.mod h1:SBP7ikXEgDnUPONgm33HtuDZEDtWa3L4QtN1ocJSEQ4=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
+github.com/cryft-labs/coreth v0.13.1-wen h1:iWQgoa2nPvzPn6zBNLBqZhiRJ//KTDdPUXfvW2vK7F8=
+github.com/cryft-labs/coreth v0.13.1-wen/go.mod h1:WfQfr5yjkQ0kSN/BnydRcXB5YzZAUb3fqOvwtZcGP+8=
+github.com/cryft-labs/cryftgo v1.11.3-wen h1:EF5nplsS2iedByhfH11PauyVlO2Kswc13AHCtksxjtQ=
+github.com/cryft-labs/cryftgo v1.11.3-wen/go.mod h1:xxXNrkhcRIMEa+89pcJXoWwzBflMzSVjiDyM4jJMges=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

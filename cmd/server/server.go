@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/MetalBlockchain/metalgo/utils/logging"
+	"github.com/cryft-labs/cryftgo/utils/logging"
 	"github.com/shubhamdubey02/Cryft-network-runner/server"
 	"github.com/shubhamdubey02/Cryft-network-runner/utils"
 	"github.com/shubhamdubey02/Cryft-network-runner/utils/constants"

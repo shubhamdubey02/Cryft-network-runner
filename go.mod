@@ -4,7 +4,8 @@ go 1.21
 
 require (
 	github.com/MetalBlockchain/coreth v0.13.2-rc.3
-	github.com/MetalBlockchain/metalgo v1.11.3-rc.1
+	github.com/MetalBlockchain/metalgo v1.11.3-rc.0
+	github.com/cryft-labs/cryftgo v1.11.3-wen
 	github.com/ethereum/go-ethereum v1.12.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0
 	github.com/onsi/ginkgo/v2 v2.13.1
@@ -42,6 +43,7 @@ require (
 	github.com/consensys/gnark-crypto v0.10.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/crate-crypto/go-kzg-4844 v0.3.0 // indirect
+	github.com/cryft-labs/coreth v0.13.1-wen // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect

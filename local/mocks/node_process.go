@@ -7,7 +7,7 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
-	status "github.com/MetalBlockchain/metal-network-runner/network/node/status"
+	status "github.com/shubhamdubey02/Cryft-network-runner/network/node/status"
 
 	testing "testing"
 )

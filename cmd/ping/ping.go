@@ -7,10 +7,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/MetalBlockchain/metal-network-runner/client"
-	"github.com/MetalBlockchain/metal-network-runner/utils/constants"
-	"github.com/MetalBlockchain/metal-network-runner/ux"
 	"github.com/MetalBlockchain/metalgo/utils/logging"
+	"github.com/shubhamdubey02/Cryft-network-runner/client"
+	"github.com/shubhamdubey02/Cryft-network-runner/utils/constants"
+	"github.com/shubhamdubey02/Cryft-network-runner/ux"
 	"github.com/spf13/cobra"
 )
 

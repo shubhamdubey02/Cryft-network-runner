@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/MetalBlockchain/metal-network-runner/cmd"
+	"github.com/shubhamdubey02/Cryft-network-runner/cmd"
 )
 
 func main() {

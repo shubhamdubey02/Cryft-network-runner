@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/MetalBlockchain/metal-network-runner/api"
-	"github.com/MetalBlockchain/metal-network-runner/network/node/status"
 	"github.com/MetalBlockchain/metalgo/config"
 	"github.com/MetalBlockchain/metalgo/ids"
 	"github.com/MetalBlockchain/metalgo/network/peer"
 	"github.com/MetalBlockchain/metalgo/snow/networking/router"
+	"github.com/shubhamdubey02/Cryft-network-runner/api"
+	"github.com/shubhamdubey02/Cryft-network-runner/network/node/status"
 )
 
 // Node represents an Metal node

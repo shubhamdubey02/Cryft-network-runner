@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/MetalBlockchain/coreth/plugin/evm"
+	"github.com/cryft-labs/coreth/plugin/evm"
 	"github.com/cryft-labs/cryftgo/api/admin"
 	"github.com/cryft-labs/cryftgo/api/health"
 	"github.com/cryft-labs/cryftgo/api/info"
